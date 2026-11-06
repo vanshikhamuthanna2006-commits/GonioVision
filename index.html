@@ -1,0 +1,1260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>GonioLens</title>
+<meta name="description" content="GonioLens: a camera goniometer. Knee flexion from three coloured stickers, live, from a photo or from a video. Built for the ArthroKNEE project.">
+<meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f5fb" media="(prefers-color-scheme: light)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GonioLens">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{
+  --bg:#0b1020; --surface:#131a2e; --surface-2:#1b2342; --line:#29335a; --ink:#eef1ff; --ink-2:#b8bfdd; --muted:#8089ad;
+  --accent:#7c5cff; --accent-2:#22d3ee; --accent-ink:#ffffff; --angle:#ffc24b;
+  --ok:#3ddc97; --ok-soft:rgba(61,220,151,.15); --bad:#ff6b7a; --bad-soft:rgba(255,107,122,.15); --warn:#ffc24b; --warn-soft:rgba(255,194,75,.15);
+  --stage:#05070f; --shadow:0 10px 30px rgba(0,0,0,.35);
+  --grad:linear-gradient(135deg,#4b2bd6 0%,#7c5cff 45%,#14b4d4 100%);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Roboto Mono",monospace;
+  --navh:64px; --stageh:min(68vh,760px); color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#f4f5fb; --surface:#ffffff; --surface-2:#eef0fa; --line:#dde1f0; --ink:#141a33; --ink-2:#47506f; --muted:#737b99;
+  --accent:#5b3df5; --accent-2:#0e9fbf; --angle:#b86e00; --ok:#11875a; --ok-soft:#e2f6ec; --bad:#c62f45; --bad-soft:#fdebee; --warn:#9a6200; --warn-soft:#fff3d9;
+  --stage:#0b1020; --shadow:0 8px 24px rgba(20,26,51,.10); color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#f4f5fb; --surface:#ffffff; --surface-2:#eef0fa; --line:#dde1f0; --ink:#141a33; --ink-2:#47506f; --muted:#737b99;
+  --accent:#5b3df5; --accent-2:#0e9fbf; --angle:#b86e00; --ok:#11875a; --ok-soft:#e2f6ec; --bad:#c62f45; --bad-soft:#fdebee; --warn:#9a6200; --warn-soft:#fff3d9;
+  --stage:#0b1020; --shadow:0 8px 24px rgba(20,26,51,.10); color-scheme:light}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--font);-webkit-text-size-adjust:100%;
+  padding:env(safe-area-inset-top,0px) max(14px,env(safe-area-inset-right,0px)) calc(var(--navh) + 24px + env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+.wrap{max-width:1180px;margin:0 auto}
+/* header */
+header.top{display:flex;align-items:center;gap:12px;padding:14px 0 10px}
+header.top img{width:40px;height:40px;border-radius:11px;box-shadow:var(--shadow);flex:0 0 auto}
+.brand{min-width:0;flex:1}
+.brand h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.brand h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .sub{font-size:12px;color:var(--muted)}
+.hbtns{display:flex;gap:6px;align-items:center}
+/* nav: top segmented on wide screens, bottom bar on phones */
+nav.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px;margin:6px 0 14px}
+nav.tabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;border:0;background:transparent;color:var(--ink-2);
+  font:600 14px var(--font);padding:9px 8px;border-radius:10px;cursor:pointer;min-height:42px}
+nav.tabs button svg{width:20px;height:20px;flex:0 0 auto}
+nav.tabs button[aria-selected="true"]{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(91,61,245,.35)}
+@media (max-width:760px){
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;margin:0;border-radius:18px 18px 0 0;border-width:1px 0 0;z-index:40;
+    padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));
+    background:color-mix(in srgb,var(--surface) 92%,transparent);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  nav.tabs button{flex-direction:column;gap:2px;font-size:11px;padding:6px 2px;min-height:52px}
+}
+/* layout */
+.grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(320px,1fr);gap:16px;align-items:start}
+@media (max-width:960px){.grid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;min-width:0;box-shadow:var(--shadow)}
+.panel + .panel{margin-top:16px}
+.grid > .panel + .panel{margin-top:0}
+h2{font-size:19px;font-weight:750;margin:0 0 10px;letter-spacing:-.01em}
+h3{font-size:14px;margin:16px 0 8px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.06em}
+p{margin:0 0 10px}
+.hint{font-size:13px;color:var(--muted)}
+/* readout */
+.readout{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:10px}
+.readout .val{font-weight:800;font-size:clamp(58px,15vw,96px);line-height:.85;font-variant-numeric:tabular-nums;letter-spacing:-.03em;color:var(--angle)}
+.readout .unit{font-size:clamp(34px,7vw,48px);font-weight:800;color:var(--angle);margin-left:-10px;align-self:flex-start;line-height:1}
+.readout .meta{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);line-height:1.55;min-width:0}
+/* stage */
+.stage{position:relative;background:var(--stage);border-radius:14px;overflow:hidden;touch-action:none;min-height:200px;display:flex;align-items:center;justify-content:center}
+.stage > canvas{display:block;max-width:100%;max-height:var(--stageh);width:auto;height:auto}
+.empty{color:#9aa3c7;font-size:14px;padding:44px 18px;text-align:center;max-width:44ch}
+.empty b{color:#dfe3ff}
+.cam{position:relative;max-width:100%;margin:0 auto;background:#000}
+.cam video,.cam canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cam canvas{touch-action:none}
+/* controls */
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.btn{font:650 14px var(--font);padding:10px 14px;min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;user-select:none;-webkit-user-select:none}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 4px 14px rgba(91,61,245,.3)}
+.btn.danger{color:var(--bad)}
+.btn.small{min-height:34px;padding:6px 10px;font-size:13px;border-radius:9px}
+.btn:disabled{opacity:.4;cursor:default;box-shadow:none}
+.btn input[type=file]{display:none}
+.btn svg{width:18px;height:18px}
+button:focus-visible,.btn:focus-within,input:focus-visible,select:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px}
+.icon-btn{width:42px;height:42px;padding:0;border-radius:12px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--ink-2);min-width:0}
+input,select{font:16px var(--font);padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-width:0;width:100%;min-height:42px}
+.inline{flex-direction:row !important;align-items:center;gap:8px !important}
+.inline select{width:auto}
+.form{display:grid;grid-template-columns:1.3fr .7fr;gap:8px}
+.form .wide,.form .pose{grid-column:1/-1}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:99px;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.bad{background:var(--bad-soft);color:var(--bad)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.swatch{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.7);display:inline-block;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.25)}
+.msgs{margin:10px 0 0;padding:0;list-style:none;font-size:13.5px}
+.msgs li{padding:8px 12px;border-radius:10px;margin-bottom:6px;background:var(--surface-2)}
+.msgs li.bad{background:var(--bad-soft);color:var(--bad)}
+.msgs li.ok{background:var(--ok-soft);color:var(--ok)}
+.msgs li.warn{background:var(--warn-soft);color:var(--warn)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface-2);font-weight:700}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+tr.sel{background:var(--surface-2)}
+.progress{height:6px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin:8px 0}
+.progress i{display:block;height:100%;width:0;background:var(--grad)}
+canvas.chart{width:100%;height:200px;display:block;background:var(--bg);border-radius:12px;cursor:crosshair;border:1px solid var(--line)}
+.steps{padding-left:20px;margin:6px 0}
+.steps li{margin-bottom:7px}
+code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);padding:1px 6px;border-radius:6px}
+.toast{position:fixed;left:50%;bottom:calc(var(--navh) + 24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:10px 18px;border-radius:12px;font-size:14px;font-weight:600;z-index:60;max-width:calc(100% - 32px);box-shadow:var(--shadow);text-align:center}
+@media (min-width:761px){.toast{bottom:24px}}
+.stab{height:10px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin:4px 0 10px}
+.stab i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff6b7a,#ffc24b 45%,#3ddc97);transition:width .12s}
+textarea{width:100%;min-height:120px;font:12px var(--mono);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:16px}
+.guide{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;background:var(--surface-2);border-radius:14px;padding:10px 12px;margin-bottom:10px}
+.guide .num{flex:0 0 auto;width:40px;height:40px;border-radius:12px;background:var(--grad);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px}
+.guide .txt{flex:1;min-width:0;font-weight:650;line-height:1.3}
+.guide .txt small{display:block;font-weight:500;color:var(--muted);font-size:12px}
+.dots{display:flex;gap:6px}
+@media (max-width:520px){.guide .dots{width:100%;justify-content:space-between}.dots button{width:38px;height:38px}}
+@media (max-width:600px){.hide-sm{display:none}}
+.dots button{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:transparent;color:var(--ink-2);font:700 12px var(--font);cursor:pointer;padding:0}
+.dots button.done{background:var(--ok);border-color:var(--ok);color:#06231a}
+.dots button.cur{border-color:var(--accent-2);color:var(--ink)}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:12px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;color:var(--ink-2);font:650 13px var(--font);padding:8px 12px;border-radius:9px;cursor:pointer;min-height:38px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.jrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:6px;align-items:center;margin:4px 0;width:100%}
+.legsvg{width:100%;max-width:340px;display:block;margin:0 auto 6px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13.5px}
+.kv dt{color:var(--muted)} .kv dd{margin:0}
+/* phone held sideways: camera on the left, angle and controls on the right, all visible at once */
+@media (orientation:landscape) and (max-height:520px){
+  :root{--stageh:calc(100vh - 110px)}
+  header.top{display:none}
+  body{padding-top:max(6px,env(safe-area-inset-top,0px))}
+  nav.tabs{margin:0 0 8px}
+  nav.tabs button{min-height:36px;padding:5px 6px}
+  .livep{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(230px,1fr);column-gap:14px;align-items:start;padding:10px}
+  .livep > .stage{grid-column:1;grid-row:1 / span 7;min-height:0}
+  .livep > :not(.stage){grid-column:2}
+  .livep .guide{padding:6px 8px;margin-bottom:6px}
+  .livep .guide .num{width:32px;height:32px;font-size:16px}
+  .livep .dots{width:100%;justify-content:space-between}
+  .livep .readout{margin-bottom:4px}
+  .livep .readout .val{font-size:60px}
+  .livep .readout .unit{font-size:30px}
+  .livep .row{margin:6px 0}
+  .livep .btn{min-height:40px;padding:8px 10px}
+}
+.guide .gimg{height:92px;width:auto;max-width:34%;border-radius:10px;background:#f6f7fb;flex:0 0 auto;object-fit:contain}
+@media (max-width:520px){.guide .gimg{height:76px}}
+.wear{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;background:var(--surface-2);border-radius:14px;padding:10px 14px;margin:0 0 10px}
+.wear .wv{font-size:44px;font-weight:800;color:var(--accent-2);font-variant-numeric:tabular-nums;line-height:1}
+.wear .wl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.wear .wd{font-family:var(--mono);font-size:14px;color:var(--ink-2)}
+.modal{position:fixed;inset:0;background:rgba(5,8,18,.8);display:flex;align-items:center;justify-content:center;z-index:70;padding:16px}
+.modal .box{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;width:min(900px,100%);max-height:100%;overflow:auto}
+.modal canvas{width:100%;height:auto;display:block;border-radius:12px}
+#qrBox canvas{background:#fff;border-radius:12px;padding:10px;width:220px;height:220px;image-rendering:pixelated}
+@media (orientation:landscape) and (max-height:520px){.livep .guide .gimg{height:56px}}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <img src="icon-192.png" alt="" width="40" height="40">
+  <div class="brand"><h1><span>GonioLens</span></h1><div class="sub">camera goniometer · ArthroKNEE</div></div>
+  <div class="hbtns">
+    <span class="chip" id="storeChip" hidden></span>
+    <button class="chip warn" id="expChip" hidden style="border:0;cursor:pointer;min-height:32px" title="Readings saved since the last export"></button>
+    <button class="btn small primary" id="installBtn" hidden>Install</button>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Modes">
+  <button role="tab" data-tab="live" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg><span>Live</span></button>
+  <button role="tab" data-tab="photo" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Photo</span></button>
+  <button role="tab" data-tab="video" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="3"/><path d="M10 8l6 4-6 4V8z"/></svg><span>Video</span></button>
+  <button role="tab" data-tab="check" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20L18 6"/><path d="M11 20a6 6 0 0 0-1.5-4"/></svg><span>Accuracy</span></button>
+  <button role="tab" data-tab="records" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Records</span></button>
+  <button role="tab" data-tab="setup" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Setup</span></button>
+</nav>
+
+<!-- ============ LIVE ============ -->
+<section data-pane="live">
+  <div class="grid">
+    <div class="panel livep">
+      <div class="guide" id="lGuide">
+        <div class="num" id="lGNum">0</div>
+        <img class="gimg" id="lGImg" alt="">
+        <div class="txt" id="lGTxt">Standing, leg straight<small>auto-capture saves this pose when the leg is still</small></div>
+        <div class="dots" id="lDots"></div>
+      </div>
+      <div class="readout"><span class="val" id="lVal">--.-</span><span class="unit">°</span><span class="meta" id="lMeta">Tap Start camera</span></div>
+      <div class="stab" title="steadiness"><i id="lStab"></i></div>
+      <div class="wear" id="lWearBox" hidden>
+        <div><div class="wl">Wearable</div><div class="wv" id="lWearVal">--.-°</div></div>
+        <div class="wd" id="lWearDiff">camera − wearable: --</div>
+        <span class="chip" id="lWearChip">not connected</span>
+        <button class="btn small" id="lWearZero">Re-zero wearable</button>
+      </div>
+      <div class="stage" id="lStage">
+        <div class="empty" id="lEmpty"><b>Point the phone side-on at the leg.</b><br>Tripod, or prop the phone on a chair, 2–3 m away at knee height. Then tap <b>Start camera</b> and allow camera access.</div>
+        <div class="cam" id="lCam" hidden><video id="lVideo" playsinline muted autoplay></video><canvas id="lOver"></canvas></div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="lStart">Start camera</button>
+        <button class="btn" id="lFlip" disabled>Switch camera</button>
+        <button class="btn" id="lStopCam" disabled>Stop</button>
+        <button class="btn" id="lCap" disabled>Capture now</button>
+        <button class="btn" id="lUndo" disabled>Undo last</button>
+        <button class="btn" id="lLock" disabled>Lock on stickers</button>
+        <button class="btn" id="lWear" hidden>Connect wearable (USB)</button>
+        <button class="btn" id="lSwap" disabled hidden>Wrong knee? Swap</button>
+      </div>
+      <label class="f inline" style="font-size:14px"><input type="checkbox" id="lAuto" style="width:22px;height:22px;min-height:0" checked> Auto-capture each pose when the leg is held still</label>
+      <ul class="msgs" id="lMsgs"></ul>
+    </div>
+    <div class="panel">
+      <h2>Session</h2>
+      <div class="form" id="lForm"></div>
+      <div class="row"><button class="btn small" id="lCard">Session card</button></div>
+      <div id="lAgree" hidden><h3>Camera vs wearable · this trial</h3><div class="tbl"><table><thead><tr><th>Pose</th><th>Camera</th><th>Wearable</th><th>Diff</th></tr></thead><tbody id="lAgreeRows"></tbody></table></div>
+        <p class="hint" id="lAgreeSum" style="margin-top:6px"></p>
+        <p class="hint">Demo and cross-check only. Your official results come from session.py recordings and analysis.py. Only one program can use COM5: close session.py and live_plot first.</p></div>
+      <p class="hint" style="margin-top:10px">A capture saves the median of the last 0.5 s. Auto-capture saves each pose once the angle is steady (SD under 0.4°), moves to the next pose, waits for the leg to move, and turns itself off after pose 3.</p>
+      <h3>Stickers</h3>
+      <div id="colorRowL"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PHOTO ============ -->
+<section data-pane="photo" hidden>
+  <div class="grid">
+    <div class="panel">
+      <div class="readout"><span class="val" id="pVal">--.-</span><span class="unit">°</span><span class="meta" id="pMeta">Take or choose a side-on photo with the three stickers visible.</span></div>
+      <div class="stage" id="pStage"><div class="empty">Photo appears here. Drag any point to fine-tune it; a magnifier appears while you drag.</div><canvas id="pCanvas" hidden></canvas></div>
+      <div class="row">
+        <label class="btn primary">Take photo<input type="file" accept="image/*" capture="environment" id="pCam"></label>
+        <label class="btn">Choose photo<input type="file" accept="image/*" id="pFile"></label>
+        <button class="btn" id="pRedetect" disabled>Re-detect</button>
+        <button class="btn" id="pSwap" disabled hidden>Wrong knee? Swap</button>
+        <button class="btn" id="pManual" disabled>Place points by hand</button>
+      </div>
+      <ul class="msgs" id="pMsgs"></ul>
+    </div>
+    <div class="panel">
+      <h2>Save this reading</h2>
+      <div class="form" id="pForm"></div>
+      <div class="row"><button class="btn primary" id="pSave" disabled style="width:100%">Save reading</button></div>
+      <h3>Stickers</h3>
+      <div id="colorRowP"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ VIDEO ============ -->
+<section data-pane="video" hidden>
+  <div class="grid">
+    <div class="panel">
+      <div class="readout"><span class="val" id="vVal">--.-</span><span class="unit">°</span><span class="meta" id="vMeta">Record or choose a side-on video. Every frame is measured; steady holds are found automatically.</span></div>
+      <div class="stage" id="vStage"><div class="empty">Video frame appears here. Start each video with the leg straight.</div><canvas id="vCanvas" hidden></canvas></div>
+      <div class="row">
+        <label class="btn primary">Record video<input type="file" accept="video/*" capture="environment" id="vCam"></label>
+        <label class="btn">Choose video<input type="file" accept="video/*" id="vFile"></label>
+        <label class="f inline">Analyse
+          <select id="vRate"><option value="30">30 frames/s</option><option value="15" selected>15 frames/s</option><option value="10">10 frames/s</option></select></label>
+        <button class="btn" id="vSwap" disabled hidden>Wrong knee? Swap</button>
+        <button class="btn" id="vSeed" disabled>Tap stickers</button>
+        <button class="btn primary" id="vRun" disabled>Analyse video</button>
+        <button class="btn danger" id="vStop" hidden>Stop</button>
+      </div>
+      <div class="progress" id="vProg" hidden><i></i></div>
+      <canvas class="chart" id="vChart" hidden aria-label="Knee angle over time"></canvas>
+      <ul class="msgs" id="vMsgs"></ul>
+      <video id="vVideo" playsinline muted preload="auto" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></video>
+    </div>
+    <div class="panel">
+      <h2>Steady holds</h2>
+      <p class="hint">A hold is when the angle stays within ±1.5° for at least 0.8 s. Tap a row to see that frame, check the pose of each hold, then save.</p>
+      <div class="form" id="vForm"></div>
+      <div class="tbl" style="margin-top:10px"><table><thead><tr><th>#</th><th>Time (s)</th><th>Angle</th><th>SD</th><th>Pose</th></tr></thead><tbody id="vHolds"><tr><td colspan="5" style="color:var(--muted)">No video analysed yet.</td></tr></tbody></table></div>
+      <div class="row"><button class="btn primary" id="vSaveAll" disabled>Save holds with a pose</button><button class="btn" id="vSeries" disabled>Export angle-vs-time CSV</button></div>
+      <h3>Stickers</h3>
+      <div id="colorRowV"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ACCURACY CHECK ============ -->
+<section data-pane="check" hidden>
+  <div class="grid">
+    <div class="panel">
+      <h2>Measure the app's own error</h2>
+      <p class="hint">Download and print the cards, stick them flat on a wall, and photograph each one the way you will film volunteers. Add a few deliberately imperfect shots (phone rotated, a step to the side, closer, further). The results table gives bias, MAE and worst error for your report.</p>
+      <div class="row" id="cardRow"></div>
+      <div class="readout" style="margin-top:6px"><span class="val" id="cVal">--.-</span><span class="unit">°</span><span class="meta" id="cMeta">Photograph a card.</span></div>
+      <div class="stage" id="cStage"><div class="empty">Card photo appears here.</div><canvas id="cCanvas" hidden></canvas></div>
+      <div class="row">
+        <label class="btn primary">Photograph card<input type="file" accept="image/*" capture="environment" id="cCam"></label>
+        <label class="btn">Choose photo<input type="file" accept="image/*" id="cFile"></label>
+        <label class="f inline">True angle <select id="cTrue"><option>0</option><option>30</option><option>60</option><option selected>90</option><option>120</option></select></label>
+        <label class="f inline">Condition <select id="cCond"><option>side-on, centred</option><option>phone rotated</option><option>~10° off-axis</option><option>~20° off-axis</option><option>close (1 m)</option><option>far (3 m)</option><option>marker near frame edge</option></select></label>
+        <button class="btn" id="cSwap" disabled hidden>Wrong knee? Swap</button>
+        <button class="btn primary" id="cSave" disabled>Save check</button>
+      </div>
+      <ul class="msgs" id="cMsgs"></ul>
+    </div>
+    <div class="panel">
+      <h2>Results</h2>
+      <div class="tbl"><table><thead><tr><th>Condition</th><th>n</th><th>Bias</th><th>MAE</th><th>Max</th></tr></thead><tbody id="cSummary"></tbody></table></div>
+      <h3>All checks</h3>
+      <div class="tbl"><table><thead><tr><th>True</th><th>Measured</th><th>Error</th><th>Condition</th><th></th></tr></thead><tbody id="cList"></tbody></table></div>
+      <div class="row"><button class="btn" id="cExport">Export checks CSV</button></div>
+      <h3>Stickers</h3>
+      <div id="colorRowC"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RECORDS ============ -->
+<section data-pane="records" hidden>
+  <div class="panel">
+    <div class="row" style="justify-content:space-between;margin-top:0">
+      <h2 style="margin:0">Saved readings</h2>
+      <label class="f inline">Subject <select id="rFilter"><option value="">all</option></select></label>
+    </div>
+    <div class="row">
+      <button class="btn primary" id="rRef">Export reference_angles.csv</button>
+      <button class="btn" id="rFull">Export full log</button>
+      <button class="btn" id="rBackup">Back up</button>
+      <button class="btn" id="rCard">Session card</button>
+      <label class="btn">Restore backup<input type="file" accept=".json,application/json" id="rRestore"></label>
+    </div>
+    <ul class="msgs" id="rMsgs"></ul>
+    <p class="hint">reference_angles.csv is the file <code>tools/analysis.py</code> reads from <code>data\</code>. Repeated readings of the same subject · trial · pose are averaged; rows marked <span class="chip warn">×2</span> have duplicates, so delete the bad one before exporting.</p>
+    <div class="tbl"><table><thead><tr><th>Subject</th><th>Trial</th><th>Pose</th><th>Angle</th><th class="hide-sm">SD</th><th class="hide-sm">Source</th><th class="hide-sm">Points</th><th class="hide-sm">Time</th><th></th></tr></thead><tbody id="rList"></tbody></table></div>
+    <div id="rCopy" hidden><h3>Copy this text into a file</h3><textarea id="rText" readonly></textarea></div>
+  </div>
+</section>
+
+<!-- ============ SETUP ============ -->
+<section data-pane="setup" hidden>
+  <div class="two">
+    <div class="panel">
+      <h2>Settings</h2>
+      <h3 style="margin-top:4px">Sticker colours</h3>
+      <div id="colorRowS"></div>
+      <h3>Which way do the toes point on screen?</h3>
+      <div class="seg" id="toesSeg"><button data-v="left">← Left</button><button data-v="right">Right →</button></div>
+      <p class="hint" style="margin-top:8px">This gives the angle its sign: bending is positive, over-straightening (hyperextension) is negative. Filming the right leg from its outer side with the back camera, the toes point <b>right</b>. If bending shows a negative number, flip this.</p>
+      <h3>Sound on capture</h3>
+      <div class="seg" id="soundSeg"><button data-v="on">On</button><button data-v="off">Off</button></div>
+      <h3>Voice guidance</h3>
+      <div class="seg" id="voiceSeg"><button data-v="on">On</button><button data-v="off">Off</button></div>
+      <p class="hint" style="margin-top:6px">In Live, the phone says each pose and every captured angle out loud, so the operator need not watch the screen.</p>
+      <h3>Share the app</h3>
+      <div id="qrBox"><canvas id="qrCanvas" width="232" height="232" aria-label="QR code of this app's address"></canvas>
+        <p class="hint" id="qrUrl" style="word-break:break-all;margin-top:6px"></p><button class="btn small" id="qrCopy">Copy address</button></div>
+      <h3>Theme</h3>
+      <div class="seg" id="themeSeg"><button data-v="auto">Auto</button><button data-v="dark">Dark</button><button data-v="light">Light</button></div>
+      <h3>Install on the phone</h3>
+      <ol class="steps">
+        <li><b>Android (Chrome):</b> tap <b>Install</b> at the top, or menu ⋮ → <b>Install app</b>.</li>
+        <li><b>iPhone (Safari):</b> Share → <b>Add to Home Screen</b>.</li>
+        <li><b>Laptop (Chrome / Edge):</b> the install icon in the address bar.</li>
+        <li>Open it from the new icon. It works offline. Readings stay on this device, so export from Records after every volunteer.</li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h2>Stickers on the leg</h2>
+      <svg class="legsvg" viewBox="0 0 320 330" role="img" aria-label="Sticker positions on the right leg, side view">
+        <path d="M108,20 C104,90 110,150 120,190 C124,206 122,224 120,238 C112,286 118,304 124,316 L196,318 L172,306 C166,286 162,250 168,226 C176,206 178,186 172,170 C182,120 190,60 192,20 Z" fill="#e3b892" stroke="#b7865f" stroke-width="2"/>
+        <line x1="146" y1="40" x2="146" y2="196" stroke="#ffc24b" stroke-width="3" stroke-dasharray="6 5"/>
+        <line x1="146" y1="196" x2="146" y2="300" stroke="#ffc24b" stroke-width="3" stroke-dasharray="6 5"/>
+        <circle cx="146" cy="40" r="11" fill="#2f7bff" stroke="#fff" stroke-width="3"/>
+        <circle cx="146" cy="196" r="11" fill="#ff3d9a" stroke="#fff" stroke-width="3"/>
+        <circle cx="146" cy="300" r="11" fill="#16c172" stroke="#fff" stroke-width="3"/>
+        <text x="166" y="44" font-size="12.5" fill="currentColor" font-family="sans-serif">HIP · greater trochanter</text>
+        <text x="166" y="194" font-size="12.5" fill="currentColor" font-family="sans-serif">KNEE · lateral epicondyle</text>
+        <text x="166" y="210" font-size="11" fill="currentColor" opacity=".7" font-family="sans-serif">1–2 cm above joint line, on skin</text>
+        <text x="166" y="304" font-size="12.5" fill="currentColor" font-family="sans-serif">ANKLE · lateral malleolus</text>
+      </svg>
+      <ol class="steps">
+        <li><b>Three colours (recommended):</b> blue hip, pink knee, green ankle, round <b>matt</b> stickers, 2–3 cm. Each colour names its joint, so they can never be mixed up.</li>
+        <li><b>Hip:</b> the bony bump on the side of the hip; ask the volunteer to roll the leg in and out and feel it move.</li>
+        <li><b>Knee:</b> the bony bump on the outer knee, 1–2 cm above the joint line, <b>on skin</b> through the 2 cm hole in the knee cap.</li>
+        <li><b>Ankle:</b> the outer ankle bone.</li>
+        <li>No clothing or background in any sticker colour. These are the standard clinical goniometry landmarks (Norkin &amp; White).</li>
+      </ol>
+      <h2 style="margin-top:16px">Camera</h2>
+      <ol class="steps">
+        <li><b>Side-on</b>, square to the plane the knee bends in. This is the only placement rule that changes accuracy.</li>
+        <li><b>2–3 m away</b>, phone at knee height, leg in the <b>middle</b> and filling most of the picture height.</li>
+        <li><b>1× zoom</b>, even light, plain background. Phone rotation, height and distance do not change the angle.</li>
+      </ol>
+      <h2 style="margin-top:16px">What this measures</h2>
+      <p class="hint">2D marker-based video goniometry in the sagittal plane: the angle at the knee sticker between the lines to the hip and ankle stickers. Validated only with printed cards (Accuracy tab), not certified as a medical device. Photos and video stay on this device; only the numbers you save are kept.</p>
+      <p class="hint" id="verLine"></p>
+    </div>
+  </div>
+</section>
+</div>
+
+<script>/* qrcode-generator 1.4.4, (c) Kazuhiko Arase, MIT licence */
+var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,(function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1}))},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(n*r,o*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(t,r){var e=n("友");if(2!=e.length||38726!=(e[0]<<8|e[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)},function(t){"function"==typeof define&&define.amd?define([],t):"object"==typeof exports&&(module.exports=t())}((function(){return qrcode}));
+</script>
+<script>
+const POSE_IMG=["data:image/webp;base64,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","data:image/webp;base64,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","data:image/webp;base64,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","data:image/webp;base64,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"];
+(function(){
+"use strict";
+const APP_VERSION='gl-2.0.1';
+/* ================================================================ utilities */
+const $=id=>document.getElementById(id);
+let toastTimer=null;
+function toast(t){ let d=$('toastEl'); if(!d){ d=document.createElement('div'); d.id='toastEl'; d.className='toast'; d.setAttribute('role','status'); document.body.appendChild(d); }
+  d.textContent=t; d.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>{ d.hidden=true; },2400); }
+const fmt=(x,n=1)=>(x==null||!isFinite(x))?'--':x.toFixed(n);
+function median(a){ const s=[...a].sort((x,y)=>x-y); const m=s.length>>1; return s.length?(s.length%2?s[m]:(s[m-1]+s[m])/2):NaN; }
+function sd(a){ if(a.length<2) return 0; let m=0; for(const v of a) m+=v; m/=a.length; let q=0; for(const v of a) q+=(v-m)*(v-m); return Math.sqrt(q/(a.length-1)); }
+function lsGet(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){ toast('Storage is full or blocked: export your records now.'); } }
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ================================================================ settings (same storage keys as v4, so old readings are kept) */
+const PRESETS=[
+  {name:'green', h:135, tol:28, smin:0.40, vmin:0.30, css:'#16c172'},
+  {name:'pink',  h:330, tol:22, smin:0.40, vmin:0.40, css:'#ff3d9a'},
+  {name:'orange',h:22,  tol:14, smin:0.55, vmin:0.45, css:'#ff7a1a'},
+  {name:'blue',  h:215, tol:20, smin:0.45, vmin:0.30, css:'#2f7bff'},
+];
+let target=lsGet('akg_color',{...PRESETS[0]});
+let mode=lsGet('akg_mode','three');
+let targets3=lsGet('akg_colors3',{hip:{...PRESETS[3]},knee:{...PRESETS[1]},ankle:{...PRESETS[0]}});
+let toes=lsGet('akg_toes','right');
+let soundOn=lsGet('akg_sound',true);
+let theme=lsGet('akg_theme','auto');
+const JOINTS=['hip','knee','ankle'];
+let picking=false;  // false | 'one' | 'hip' | 'knee' | 'ankle'
+function applyTheme(){ if(theme==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',theme); }
+applyTheme();
+
+function setTarget(t,why){ target={...t}; picking=false; lsSet('akg_color',target); renderColorRows(); if(why) toast(why); }
+function setTarget3(j,t,why){ targets3={...targets3,[j]:{...t}}; picking=false; lsSet('akg_colors3',targets3); renderColorRows(); if(why) toast(why); }
+function setMode(m){ mode=m; picking=false; lsSet('akg_mode',mode); renderColorRows(); updateSwapButtons(); rerunAll(); toast(m==='three'?'Three-colour mode: one colour per joint':'One-colour mode: bigger sticker on the knee'); }
+function applyPicked(c){ if(picking==='one') setTarget(c,'Sticker colour set'); else if(JOINTS.includes(picking)) setTarget3(picking,c,`${picking.toUpperCase()} colour set`); }
+function updateSwapButtons(){ for(const id of ['pSwap','vSwap','lSwap','cSwap']) $(id).hidden= mode==='three'; }
+function renderColorRows(){
+  for(const id of ['colorRowP','colorRowV','colorRowL','colorRowC','colorRowS']){
+    const box=$(id); if(!box) continue; box.textContent='';
+    const seg=document.createElement('div'); seg.className='seg'; seg.style.marginBottom='8px';
+    for(const [m,lab] of [['three','Three colours'],['one','One colour, big knee']]){ const b=document.createElement('button'); b.textContent=lab; b.setAttribute('aria-pressed',String(mode===m)); b.onclick=()=>setMode(m); seg.appendChild(b); }
+    box.appendChild(seg);
+    if(mode==='one'){
+      const nt=document.createElement('div'); nt.className='chip warn'; nt.style.cssText='white-space:normal;margin-bottom:6px'; nt.textContent='Backup mode: less reliable with clutter or patterned clothing. Three colours is recommended for data.'; box.appendChild(nt);
+      const line=document.createElement('div'); line.className='jrow';
+      line.innerHTML=`<span class="chip"><span class="swatch" style="background:${esc(target.css)}"></span>all three · ${esc(target.name)}</span>`;
+      const sel=document.createElement('select'); sel.setAttribute('aria-label','sticker colour'); sel.style.width='auto';
+      sel.innerHTML='<option value="">preset…</option>'+PRESETS.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');
+      sel.onchange=()=>{ if(sel.value!==''){ setTarget(PRESETS[+sel.value]); rerunAll(); } };
+      const pk=document.createElement('button'); pk.className='btn small'; pk.textContent=picking==='one'?'Tap sticker…':'Pick';
+      pk.onclick=()=>{ picking=picking==='one'?false:'one'; renderColorRows(); if(picking) toast('Now tap the middle of a sticker in the picture'); };
+      line.append(sel,pk); box.appendChild(line);
+    } else {
+      for(const j of JOINTS){ const t=targets3[j]; const line=document.createElement('div'); line.className='jrow';
+        line.innerHTML=`<span class="chip"><span class="swatch" style="background:${esc(t.css)}"></span><b>${j.toUpperCase()}</b>&nbsp;${esc(t.name)}</span>`;
+        const sel=document.createElement('select'); sel.setAttribute('aria-label',j+' colour'); sel.style.width='auto';
+        sel.innerHTML='<option value="">preset…</option>'+PRESETS.map((p,i)=>`<option value="${i}">${p.name}</option>`).join('');
+        sel.onchange=()=>{ if(sel.value!==''){ setTarget3(j,PRESETS[+sel.value]); rerunAll(); } };
+        const pk=document.createElement('button'); pk.className='btn small'; pk.textContent=picking===j?'Tap it…':'Pick';
+        pk.onclick=()=>{ picking=picking===j?false:j; renderColorRows(); if(picking) toast(`Now tap the middle of the ${j.toUpperCase()} sticker`); };
+        line.append(sel,pk); box.appendChild(line); }
+      const T=JOINTS.map(j=>targets3[j]); let clash=false;
+      for(let a=0;a<3;a++) for(let b=a+1;b<3;b++){ let dh=Math.abs(T[a].h-T[b].h); if(dh>180) dh=360-dh; if(dh<T[a].tol+T[b].tol) clash=true; }
+      if(clash){ const w=document.createElement('div'); w.className='chip bad'; w.style.whiteSpace='normal'; w.style.marginTop='6px'; w.textContent='Two joints have colours too close to tell apart. Choose three different colours.'; box.appendChild(w); }
+    }
+  }
+}
+function rgb2hsv(r,g,b){ const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn; let h=0;
+  if(d){ if(mx===r) h=((g-b)/d)%6; else if(mx===g) h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; if(h<0) h+=360; }
+  return [h,mx?d/mx:0,mx/255]; }
+function sampleColor(ctx,x,y){
+  const r=4, d=ctx.getImageData(Math.max(0,x-r),Math.max(0,y-r),2*r+1,2*r+1).data; let R=0,G=0,B=0,n=0;
+  for(let i=0;i<d.length;i+=4){ R+=d[i]; G+=d[i+1]; B+=d[i+2]; n++; }
+  R/=n; G/=n; B/=n; const [h,s,v]=rgb2hsv(R,G,B);
+  if(s<0.25||v<0.2) return null;
+  return {name:'picked', h, tol:20, smin:Math.max(0.25,s*0.55), vmin:Math.max(0.18,v*0.45), css:`rgb(${R|0},${G|0},${B|0})`}; }
+
+/* ================================================================ detection
+   Allocation-free colour classification on a downscaled copy, connected components on reused buffers,
+   then each centre is refined at full resolution (sub-pixel centroid). */
+const DET={c:null,ctx:null,n:0,mask:null,lab:null,stack:null};
+function detBuffers(n){ if(n>DET.n){ DET.n=n; DET.mask=new Uint8Array(n); DET.lab=new Int32Array(n); DET.stack=new Int32Array(n); } else DET.lab.fill(0,0,n); }
+function hueOK(r,g,b,t,vk=1){ let mx=r>g?r:g; if(b>mx) mx=b; let mn=r<g?r:g; if(b<mn) mn=b; const d=mx-mn;
+  if(d===0||mx<t.vmin*255*vk||d<t.smin*mx) return false;
+  let h; if(mx===r) h=((g-b)/d)%6; else if(mx===g) h=(b-r)/d+2; else h=(r-g)/d+4; h*=60; if(h<0) h+=360;
+  let dh=h-t.h; if(dh<0) dh=-dh; if(dh>180) dh=360-dh; return dh<=t.tol; }
+function detect(src,opts={}){
+  const W0=src.width,H0=src.height, work=opts.workWidth||720;
+  const W=Math.max(1,Math.round(W0*Math.min(1,work/W0))), H=Math.max(1,Math.round(H0*Math.min(1,work/W0)));
+  const s2=W/W0;
+  if(!DET.c){ DET.c=document.createElement('canvas'); }
+  if(DET.c.width!==W||DET.c.height!==H){ DET.c.width=W; DET.c.height=H; DET.ctx=null; }
+  if(!DET.ctx) DET.ctx=DET.c.getContext('2d',{willReadFrequently:true});
+  const cx=DET.ctx; cx.imageSmoothingEnabled=true; cx.drawImage(src,0,0,W,H);
+  const three=mode==='three', T=three?JOINTS.map(j=>targets3[j]):[target], nT=T.length; const res0={};
+  const d=cx.getImageData(0,0,W,H).data, N=W*H; detBuffers(N); const mask=DET.mask, lab=DET.lab, stack=DET.stack;
+  // dim room: lower the brightness thresholds in proportion to how bright the frame really is
+  const hist=new Uint32Array(256); for(let i=0;i<d.length;i+=16){ let m=d[i]>d[i+1]?d[i]:d[i+1]; if(d[i+2]>m) m=d[i+2]; hist[m]++; }
+  let acc=0,p95=255; const tot=Math.ceil(N/4)*0.95; for(let v=0;v<256;v++){ acc+=hist[v]; if(acc>=tot){ p95=v; break; } }
+  const vk=Math.max(0.3,Math.min(1,p95/215)); res0.vk=vk;
+  const th=T.map(t=>t.h),tt=T.map(t=>t.tol),ts=T.map(t=>t.smin),tv=T.map(t=>t.vmin*255*vk);
+  let minS=1,minV=255; for(let k=0;k<nT;k++){ if(ts[k]<minS) minS=ts[k]; if(tv[k]<minV) minV=tv[k]; }
+  for(let p=0,i=0;p<N;p++,i+=4){
+    mask[p]=0; const r=d[i],g=d[i+1],b=d[i+2]; let mx=r>g?r:g; if(b>mx) mx=b; if(mx<minV) continue;
+    let mn=r<g?r:g; if(b<mn) mn=b; const dd=mx-mn; if(dd===0||dd<minS*mx) continue;
+    let h; if(mx===r) h=((g-b)/dd)%6; else if(mx===g) h=(b-r)/dd+2; else h=(r-g)/dd+4; h*=60; if(h<0) h+=360;
+    const s=dd/mx;
+    for(let k=0;k<nT;k++){ if(s<ts[k]||mx<tv[k]) continue; let dh=h-th[k]; if(dh<0) dh=-dh; if(dh>180) dh=360-dh; if(dh<=tt[k]){ mask[p]=k+1; break; } }
+  }
+  const blobs=[]; let nl=0;
+  for(let p=0;p<N;p++){ const m=mask[p]; if(!m||lab[p]) continue; nl++; let sp=0; stack[sp++]=p; lab[p]=nl;
+    let area=0,sx=0,sy=0,sxx=0,syy=0,sxy=0,x0=W,y0=H,x1=0,y1=0;
+    while(sp){ const q=stack[--sp], x=q%W, y=(q/W)|0; area++; sx+=x; sy+=y; sxx+=x*x; syy+=y*y; sxy+=x*y;
+      if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y;
+      if(x>0&&mask[q-1]===m&&!lab[q-1]){lab[q-1]=nl;stack[sp++]=q-1;}
+      if(x<W-1&&mask[q+1]===m&&!lab[q+1]){lab[q+1]=nl;stack[sp++]=q+1;}
+      if(y>0&&mask[q-W]===m&&!lab[q-W]){lab[q-W]=nl;stack[sp++]=q-W;}
+      if(y<H-1&&mask[q+W]===m&&!lab[q+W]){lab[q+W]=nl;stack[sp++]=q+W;} }
+    if(area<4) continue;
+    const bw=x1-x0+1,bh=y1-y0+1, mx_=sx/area, my_=sy/area;
+    const cxx=sxx/area-mx_*mx_+1/12, cyy=syy/area-my_*my_+1/12, cxy=sxy/area-mx_*my_, tr=(cxx+cyy)/2, dt=Math.sqrt(Math.max(0,tr*tr-(cxx*cyy-cxy*cxy)));
+    const l1=tr+dt, l2=Math.max(1e-6,tr-dt);
+    blobs.push({id:nl,k:m-1,area,cx:mx_,cy:my_,x0,y0,x1,y1,fill:area/(bw*bh),elong:Math.sqrt(l1/l2),efill:area/(4*Math.PI*Math.sqrt(l1*l2))}); }
+  const minA=Math.max(6,N*0.00002), maxA=N*0.025;
+  // a sticker is a compact, filled, roughly elliptical blob (motion blur may stretch it up to 3.5:1); clothing and bags are far too big
+  const ok=b=>b.area>=minA&&b.area<=maxA&&(b.area<30?b.fill>=0.4:(b.elong<=3.5&&b.efill>=0.72&&b.efill<=1.35));
+  const res={found:0,pts:null,msgs:[],W:W0,H:H0,vk:res0.vk};
+  const fctx=opts.fullCtx||src.getContext('2d',{willReadFrequently:true});
+  // Refine each candidate at full resolution: sub-pixel centre, size, and a corner score.
+  // corner = largest Mahalanobis distance of a blob pixel / 2. Any filled ellipse (round sticker, oval sticker,
+  // motion-blurred sticker) scores ~1.0; a rectangle (an MPU6050 board, a label) scores ~1.2 at any size or rotation.
+  const HARD=1.30, ROUND=1.09, BOARDISH=1.08, MARGIN=0.05, SUSPECT=1.14;  // thresholds measured on synthetic boards vs stickers
+  const refine=(b,t)=>{ const pad=3, X0=Math.max(0,Math.floor((b.x0-pad)/s2)), Y0=Math.max(0,Math.floor((b.y0-pad)/s2));
+    const X1=Math.min(W0-1,Math.ceil((b.x1+1+pad)/s2)), Y1=Math.min(H0-1,Math.ceil((b.y1+1+pad)/s2)), w=X1-X0+1, h=Y1-Y0+1;
+    const fb={x:(b.cx+0.5)/s2,y:(b.cy+0.5)/s2,r:Math.sqrt(b.area/Math.PI)/s2,corner:1};
+    if(w*h>4e6) return fb;
+    const dd=fctx.getImageData(X0,Y0,w,h).data, M=new Uint8Array(w*h);
+    // only pixels inside this blob's own footprint (from the low-resolution labels, grown by one pixel) count:
+    // similar-coloured surroundings, e.g. navy shorts around a blue hip sticker, stay out
+    const cq=[], cs=[], cv=[];
+    for(let q=0,i=0;q<w*h;q++,i+=4){ if(!hueOK(dd[i],dd[i+1],dd[i+2],t,vk)) continue;
+      const lx=Math.min(W-1,Math.floor((X0+q%w+0.5)*s2)), ly=Math.min(H-1,Math.floor((Y0+((q/w)|0)+0.5)*s2)), L=ly*W+lx;
+      if(!(lab[L]===b.id||(lx>0&&lab[L-1]===b.id)||(lx<W-1&&lab[L+1]===b.id)||(ly>0&&lab[L-W]===b.id)||(ly<H-1&&lab[L+W]===b.id))) continue;
+      const r_=dd[i],g_=dd[i+1],b_=dd[i+2]; let mx_=r_>g_?r_:g_; if(b_>mx_) mx_=b_; let mn_=r_<g_?r_:g_; if(b_<mn_) mn_=b_;
+      cq.push(q); cs.push((mx_-mn_)/mx_); cv.push(mx_); }
+    // keep only pixels as saturated and bright as the sticker itself: dark same-hue surroundings (navy shorts) drop out
+    if(cq.length>=12){ const p75=a=>{ const z=a.slice().sort((x,y)=>x-y); return z[Math.floor(z.length*0.75)]; }, S75=p75(cs), V75=p75(cv);
+      for(let j=0;j<cq.length;j++) if(cs[j]>=0.55*S75&&cv[j]>=0.55*V75) M[cq[j]]=1; }
+    else for(const q of cq) M[q]=1;
+    // ignore isolated noise pixels (fewer than 2 marked 4-neighbours): they would bias the centre and the corner score
+    const keep=q=>{ if(!M[q]) return false; const x=q%w; let k=0; if(x>0&&M[q-1]) k++; if(x<w-1&&M[q+1]) k++; if(q>=w&&M[q-w]) k++; if(q+w<w*h&&M[q+w]) k++; return k>=2; };
+    let n=0,sx=0,sy=0,sxx=0,syy=0,sxy=0;
+    for(let q=0;q<w*h;q++){ if(!keep(q)) continue; const xx=q%w, yy=(q/w)|0; n++; sx+=xx; sy+=yy; sxx+=xx*xx; syy+=yy*yy; sxy+=xx*yy; }
+    if(n<=4) return fb;
+    const mx=sx/n,my=sy/n, a=sxx/n-mx*mx+1/12, c=syy/n-my*my+1/12, bb=sxy/n-mx*my, det=a*c-bb*bb;
+    let corner=1;
+    if(n>=40&&det>1e-9){ const ia=c/det, ic=a/det, ib=-bb/det; let mxd=0;
+      for(let q=0;q<w*h;q++){ if(!keep(q)) continue; const dx=q%w-mx, dy=((q/w)|0)-my, v=ia*dx*dx+2*ib*dx*dy+ic*dy*dy; if(v>mxd) mxd=v; }
+      corner=Math.sqrt(mxd)/2; }
+    return {x:X0+mx+0.5,y:Y0+my+0.5,r:Math.sqrt(n/Math.PI),corner}; };
+  let rejectedBoards=0;
+  // Motion-blur recovery (live / video only): a fast swing smears a small sticker into the skin colour.
+  // Search again near where the sticker was a moment ago, with relaxed colour rules and a blur-tolerant shape test.
+  const recover=(t,pp)=>{ if(!pp||pp.seed) return null;   // only from a sticker actually seen in the last frames, never from a tap
+    const cxl=pp.x*s2, cyl=pp.y*s2, R=Math.max(30,0.22*Math.max(W,H));
+    const x0=Math.max(0,Math.floor(cxl-R)), x1=Math.min(W-1,Math.ceil(cxl+R)), y0=Math.max(0,Math.floor(cyl-R)), y1=Math.min(H-1,Math.ceil(cyl+R)), ww=x1-x0+1, hh=y1-y0+1;
+    if(ww<3||hh<3) return null;
+    const rt={h:t.h,tol:t.tol+8,smin:t.smin*0.7,vmin:t.vmin*0.7}, mk=new Uint8Array(ww*hh), lb=new Int32Array(ww*hh), st=new Int32Array(ww*hh);
+    for(let yy=0;yy<hh;yy++) for(let xx=0;xx<ww;xx++){ const i=((y0+yy)*W+x0+xx)*4; if(hueOK(d[i],d[i+1],d[i+2],rt,vk)) mk[yy*ww+xx]=1; }
+    let best=null,bd=1e18,id=0,cnt=0; const rw=(pp.r||8)*s2, aMin=0.3*Math.PI*rw*rw, aMax=5*Math.PI*rw*rw;
+    for(let p=0;p<ww*hh;p++){ if(!mk[p]||lb[p]) continue; id++; let sp=0; st[sp++]=p; lb[p]=id; let n=0,sx=0,sy=0,sxx=0,syy=0,sxy=0;
+      while(sp){ const q=st[--sp], x=q%ww, y=(q/ww)|0; n++; sx+=x; sy+=y; sxx+=x*x; syy+=y*y; sxy+=x*y;
+        if(x>0&&mk[q-1]&&!lb[q-1]){lb[q-1]=id;st[sp++]=q-1;} if(x<ww-1&&mk[q+1]&&!lb[q+1]){lb[q+1]=id;st[sp++]=q+1;}
+        if(y>0&&mk[q-ww]&&!lb[q-ww]){lb[q-ww]=id;st[sp++]=q-ww;} if(y<hh-1&&mk[q+ww]&&!lb[q+ww]){lb[q+ww]=id;st[sp++]=q+ww;} }
+      if(n<minA||n>maxA) continue;
+      const mx=sx/n,my=sy/n, a=sxx/n-mx*mx+1/12, c=syy/n-my*my+1/12, b_=sxy/n-mx*my, tr=(a+c)/2, dt=Math.sqrt(Math.max(0,tr*tr-(a*c-b_*b_))), l1=tr+dt, l2=Math.max(1e-6,tr-dt);
+      if(Math.sqrt(l1/l2)>5||n/(4*Math.PI*Math.sqrt(l1*l2))<0.6) continue;
+      if(n<aMin||n>aMax) continue;   // a smeared sticker keeps roughly its size
+      const dist=Math.hypot(x0+mx-cxl,y0+my-cyl); if(dist<=R) cnt++; if(dist<bd&&dist<=R){ bd=dist; best={x:(x0+mx+0.5)/s2,y:(y0+my+0.5)/s2,r:Math.sqrt(n/Math.PI)/s2,corner:1,recovered:true}; } }
+    return cnt===1?best:null; };   // more than one possible blob nearby: do not guess
+  const prevPts=opts.prev&&opts.prev.every(Boolean)?opts.prev:null;
+  // Follow the stickers from where they just were. Only accepted when one set is clearly the nearest, and each sticker kept
+  // its size (a sticker does not suddenly grow or shrink; user taps carry no size, so they skip that test).
+  const trackNearest=(sets,prev,rmOf)=>{ const near=[];
+    for(const v of sets){ const rmv=rmOf(v), jump=Math.max(5*rmv,0.06*Math.max(W0,H0)); let okT=true,ds=0;
+      for(let i=0;i<3;i++){ const q=prev[i], p=v.pts[i], d=Math.hypot(p.x-q.x,p.y-q.y); if(d>jump){ okT=false; break; }
+        if(!q.seed&&q.r>0){ const k=p.r/q.r; if(k<0.55||k>1.8){ okT=false; break; } } ds+=d; }
+      if(okT&&v.score<=1.2) near.push({v,ds,rmv}); }
+    if(!near.length) return null; near.sort((a,b)=>a.ds-b.ds);
+    const best=near[0]; for(const o of near.slice(1)){ const differs=o.v.pts.some((p,i)=>Math.hypot(p.x-best.v.pts[i].x,p.y-best.v.pts[i].y)>1.5*best.rmv);
+      if(differs&&o.ds<best.ds+4*best.rmv) return null; }        // another set nearly as close: do not guess
+    return best.v; };
+  // drop shapes far from round; and when a clearly round sticker is present, drop rectangular look-alikes (boards, labels)
+  const roundOnly=list=>{ let l=list.filter(p=>{ if(p.corner>HARD){ rejectedBoards++; return false; } return true; });
+    const best=Math.min(...l.map(p=>p.corner));
+    if(best<=ROUND) l=l.filter(p=>{ if(p.corner>=BOARDISH&&p.corner-best>=MARGIN){ rejectedBoards++; return false; } return true; });
+    return l; };
+  if(three){
+    const per=[], missing=[];
+    for(let k=0;k<3;k++){
+      let c=blobs.filter(b=>b.k===k&&ok(b)).sort((a,b)=>b.area-a.area).slice(0,6).map(b=>refine(b,T[k])).sort((a,b)=>b.r-a.r);
+      const best=c.length?Math.min(...c.map(p=>p.corner)):9;
+      if(best<=ROUND) c=c.filter(p=>{ if(p.corner>=BOARDISH&&p.corner-best>=MARGIN){ rejectedBoards++; return false; } return true; });  // boards, labels
+      // a sticker cut in two by a chair leg, cable or strap: offer the two pieces joined as one more candidate
+      const joined=[]; for(let i=0;i<c.length;i++) for(let j=i+1;j<c.length;j++){ const a=c[i],b=c[j], d=Math.hypot(a.x-b.x,a.y-b.y);
+        if(d<2.4*Math.max(a.r,b.r)&&d<1.3*(a.r+b.r)){ const A=a.r*a.r+b.r*b.r; joined.push({x:(a.x*a.r*a.r+b.x*b.r*b.r)/A,y:(a.y*a.r*a.r+b.y*b.r*b.r)/A,r:Math.sqrt(A),corner:Math.max(a.corner,b.corner),joined:true}); } }
+      c=c.concat(joined).sort((a,b)=>b.r-a.r);
+      if(c.length) c=c.filter(p=>p.r*p.r>=0.04*c[0].r*c[0].r);   // only tiny specks are dropped here; bigger look-alikes compete below
+      per.push(c); if(c.length) res.found++; else missing.push(JOINTS[k].toUpperCase()); }
+    if(missing.length&&prevPts){ for(let k=0;k<3;k++) if(!per[k].length){ const q=recover(T[k],prevPts[k]); if(q){ per[k]=[q]; res.found++; res.recovered=true; } } }
+    const miss2=JOINTS.filter((j,k)=>!per[k].length).map(j=>j.toUpperCase());
+    if(miss2.length){ res.msgs.push({t:'bad',m:`No ${miss2.join(', ')} sticker found. Check it is in view and not covered, or set its colour with Pick.`}); return res; }
+    // Every combination of one spot per colour is scored against a real leg: three similar-sized stickers, thigh and shank of
+    // similar length (side-on ratio 0.75-1.45), and each segment 10-60 sticker radii long (true at any camera distance, since both scale together).
+    const combos=[];
+    for(const a of per[0]) for(const b of per[1]) for(const c of per[2]){ const pts=[a,b,c], g=geom(pts), ratio=g.L1/Math.max(1e-6,g.L2), ar=pts.map(p=>p.r*p.r), spread=Math.max(...ar)/Math.min(...ar), rm=(a.r+b.r+c.r)/3;
+      if(Math.abs(g.flexion)<=160&&ratio>=0.75&&ratio<=1.45&&spread<=6&&g.L1>=10*rm&&g.L2>=10*rm&&g.L1<=60*rm&&g.L2<=60*rm)
+        combos.push({pts,spread,len:g.L1+g.L2,rm,L1:g.L1,L2:g.L2,score:Math.log(spread)+1.5*Math.abs(Math.log(ratio/1.05))}); }
+    if(!combos.length){ res.msgs.push({t:'bad',m:'The coloured spots found do not look like three matching stickers on a leg (very different sizes, or spacing that does not fit a leg), so no reading is given. Check the stickers are fully visible and nothing else in view has their colours.'}); return res; }
+    const sameSet=(u,v)=>u.pts.every((p,i)=>Math.hypot(p.x-v.pts[i].x,p.y-v.pts[i].y)<1.5*Math.max(p.r,v.pts[i].r));
+    const distinct=[]; for(const v of combos) if(!distinct.some(u=>sameSet(u,v))) distinct.push(v);
+    const lookAlikes=per.some(c=>c.filter(p=>!p.joined&&p.r>=0.55*c[0].r).length>1);   // another spot of about sticker size in a sticker colour
+    if(distinct.length>1||lookAlikes){ const strict=combos.filter(v=>v.L1>=14*v.rm&&v.L2>=14*v.rm);   // look-alikes present: a real leg must also be clearly long for its stickers
+      if(!strict.length){ res.msgs.push({t:'bad',m:'Several objects in the sticker colours are in view and no three of them match like stickers on a leg, so no reading is given. Clear the background, or tap Lock on stickers.'}); return res; }
+      combos.length=0; combos.push(...strict); }
+    // Tracking: if we know where the stickers just were (previous frame, or the user tapped them), follow the nearest valid set.
+    let trackPick=null;
+    if(prevPts) trackPick=trackNearest(combos,prevPts,v=>v.rm);
+    combos.sort((a,b)=>a.score-b.score);
+    const ambiguous=per.some(c=>c.length>1), prev=prevPts;   // any extra spot at all: the best set must also fit well (score check below)
+    if(!trackPick&&ambiguous&&combos[0].score>0.8){ res.msgs.push({t:'bad',m:'Several objects in the sticker colours are in view and no three of them match like stickers on a leg, so no reading is given. Clear the background or place the points by hand.'}); return res; }
+    const same=(u,v)=>u.pts.every((p,i)=>Math.hypot(p.x-v.pts[i].x,p.y-v.pts[i].y)<1.5*Math.max(p.r,v.pts[i].r));   // the same three stickers (e.g. a joined vs a cut piece)
+    const rivals=[combos[0]]; for(const v of combos.slice(1)) if(v.score<=combos[0].score+0.6&&!rivals.some(u=>same(u,v))) rivals.push(v);
+    let pick=trackPick; res.path=pick?'track':'';
+    if(pick){}
+    else if(rivals.length===1){ pick=rivals[0]; res.path='unique'; }
+    else if(rivals.length===2&&!rivals[0].pts.some(p=>rivals[1].pts.includes(p))){ const bySize=[...rivals].sort((a,b)=>b.len-a.len); if(bySize[0].len>=1.2*bySize[1].len) pick=bySize[0]; }   // exactly two separate full sets (another person, a reflection): the volunteer is the leg nearest the camera
+    if(!pick){ const crowded=JOINTS.filter((j,k)=>per[k].length>1).map(j=>j.toUpperCase());
+      res.msgs.push({t:'bad',m:`More than one possible set of ${crowded.join(', ')} stickers is in view (spare stickers, another person or a reflection?), so no reading is given. Move them out of view, or place the points by hand.`}); return res; }
+    if(distinct.length>1||lookAlikes) res.msgs.push({t:'warn',m:'Another object with a sticker colour is in view; the app picked the three matching stickers. Check the HIP, KNEE and ANKLE labels.'});
+    res.pts=pick.pts; res.kneeBy='colour';
+    const a3=res.pts.map(p=>p.r*p.r); for(let k=0;k<3;k++){ const others=a3.filter((_,j)=>j!==k), mo=(others[0]+others[1])/2; if(a3[k]<0.55*mo){ res.msgs.push({t:'warn',m:`The ${JOINTS[k].toUpperCase()} sticker looks smaller than the others: it may be partly hidden or folded, which shifts its centre. Make sure it is fully visible.`}); break; } }
+  } else {
+    let cand=blobs.filter(ok).sort((a,b)=>b.area-a.area).slice(0,8).map(b=>refine(b,target)).filter(p=>{ if(p.corner>HARD){ rejectedBoards++; return false; } return true; });
+    if(cand.length>3){ const third=cand.map(p=>p.corner).sort((a,b)=>a-b)[2]; if(third<=ROUND) cand=cand.filter(p=>{ if(p.corner>=BOARDISH&&p.corner-third>=MARGIN){ rejectedBoards++; return false; } return true; }); }
+    cand.sort((a,b)=>b.r-a.r);
+    if(cand.length<3&&prevPts){ const lim=0.12*Math.max(W0,H0);
+      for(const pp of prevPts){ if(cand.some(c=>Math.hypot(c.x-pp.x,c.y-pp.y)<lim)) continue; const q=recover(target,pp); if(q&&!cand.some(c=>Math.hypot(c.x-q.x,c.y-q.y)<1)){ cand.push(q); res.recovered=true; } } }
+    res.found=cand.length;
+    if(cand.length<3){ res.msgs.push({t:'bad',m:cand.length?`Only ${cand.length} sticker(s) found. Check all three are in view, or set the colour with Pick.`:'No stickers found. Set the sticker colour with Pick, or place the points by hand.'}); return res; }
+    // Same idea as three-colour mode: try every set of three spots and keep the one that looks like hip + big knee + ankle on a leg.
+    const C=cand.slice(0,7), trip=[];
+    for(let i=0;i<C.length;i++) for(let j=i+1;j<C.length;j++) for(let k=j+1;k<C.length;k++){
+      const top=[C[i],C[j],C[k]], pts=assign(top,opts.prev,top.map(p=>p.r*p.r)), rule=assign.lastRule, g=geom(pts), ratio=g.L1/Math.max(1e-6,g.L2);
+      const hA=pts[0].r*pts[0].r, kA=pts[1].r*pts[1].r, aA=pts[2].r*pts[2].r, sp=Math.max(hA,aA)/Math.min(hA,aA), kneeRel=kA/((hA+aA)/2), rm=(pts[0].r+pts[2].r)/2;
+      if(Math.abs(g.flexion)<=160&&ratio>=0.75&&ratio<=1.45&&sp<=4&&kneeRel<=8&&g.L1>=10*rm&&g.L2>=10*rm&&g.L1<=60*rm&&g.L2<=60*rm)
+        trip.push({pts,rule,L1:g.L1,L2:g.L2,rm,score:Math.log(sp)+1.5*Math.abs(Math.log(ratio/1.05))+(kneeRel<1.5?0.6:0)}); }
+    if(!trip.length){ res.msgs.push({t:'bad',m:cand.length>3?`${cand.length} round objects of the sticker colour were found and no three of them fit a leg, so no reading is given. Clear the background or use three-colour mode.`:'The three spots do not fit a leg (very different sizes or spacing), so no reading is given.'}); return res; }
+    { const sameT0=(u,v)=>u.pts.every(p=>v.pts.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<1.5*Math.max(p.r,q.r))); const dT=[]; for(const v of trip) if(!dT.some(u=>sameT0(u,v))) dT.push(v);
+      const big=cand.filter(p=>!p.joined&&p.r>=0.45*cand[0].r).length;   // more than the three stickers' worth of sticker-sized spots
+      if(dT.length>1||big>3){ const strict=trip.filter(v=>v.L1>=14*v.rm&&v.L2>=14*v.rm); if(!strict.length){ res.msgs.push({t:'bad',m:`${cand.length} round objects of the sticker colour were found and no three of them fit a leg, so no reading is given. Clear the background or use three-colour mode.`}); return res; } trip.length=0; trip.push(...strict); } }
+    trip.sort((a,b)=>a.score-b.score);
+    const prevOk=opts.prev&&opts.prev.every(Boolean);
+    const tracked1=prevOk?trackNearest(trip,opts.prev,v=>(v.pts[0].r+v.pts[2].r)/2):null;
+    if(!tracked1&&cand.length>3&&trip[0].score>0.8){ res.msgs.push({t:'bad',m:`${cand.length} round objects of the sticker colour were found, not 3, so no reading is given. Clear the background or use three-colour mode.`}); return res; }
+    const sameT=(u,v)=>u.pts.every(p=>v.pts.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<1.5*Math.max(p.r,q.r)));
+    const rivT=[trip[0]]; for(const v of trip.slice(1)) if(v.score<=trip[0].score+0.6&&!rivT.some(u=>sameT(u,v))) rivT.push(v);
+    let pickT=null;
+    pickT=tracked1;
+    res.path=pickT?'track':'';
+    if(pickT){}
+    else if(rivT.length===1){ pickT=rivT[0]; res.path='unique'; }
+    if(!pickT){ res.msgs.push({t:'bad',m:`${cand.length} round objects of the sticker colour were found and more than one set fits a leg, so no reading is given. Clear the background or use three-colour mode.`}); return res; }
+    res.pts=pickT.pts; res.kneeBy=pickT.rule;
+  }
+  res.boardsIgnored=rejectedBoards;
+  if(res.recovered) res.suspect=true;   // blurred mid-movement: shown, but never auto-captured
+  const odd=res.pts.findIndex(p=>p.corner>=SUSPECT);
+  if(odd>=0){ res.suspect=true; res.msgs.push({t:'warn',m:`The ${mode==='three'?JOINTS[odd].toUpperCase()+' ':''}sticker does not look round: it may be blurred, partly hidden, or a board or label of the same colour. Check the labels. Auto-capture waits for a clearer view.`}); }
+  for(const p of res.pts){ if(p.x<0.06*W0||p.x>0.94*W0||p.y<0.06*H0||p.y>0.94*H0){ res.msgs.push({t:'warn',m:'A sticker is near the edge of the picture, where lens distortion is largest. Centre the leg if you can.'}); break; } }
+  const g=geom(res.pts);
+  // physical plausibility: refuse readings no knee can produce, or a "leg" whose thigh and shank lengths are wildly different
+  const ratio=g.L1/Math.max(1e-6,g.L2), rmG=three?(res.pts[0].r+res.pts[1].r+res.pts[2].r)/3:(res.pts[0].r+res.pts[2].r)/2;
+  if(Math.abs(g.flexion)>160||ratio<0.75||ratio>1.45||g.L1<10*rmG||g.L2<10*rmG||g.L1>60*rmG||g.L2>60*rmG){ res.msgs.unshift({t:'bad',m:'The three spots do not form a plausible leg (impossible angle or very unequal thigh and shank), so no reading is given. Check that the right things are being detected.'}); res.pts=null; return res; }
+  if(g.L1<8*g.r||g.L2<8*g.r) res.msgs.push({t:'warn',m:'The stickers are close together for their size. Move closer so the leg fills more of the picture.'});
+  if(g.flexion<-25) res.msgs.push({t:'warn',m:'Large negative angle: the "toes point" setting is probably the wrong way round (Setup tab).'});
+  return res;
+}
+// one-colour mode: which sticker is the knee? tracking, then clearly biggest, then geometry
+function assign(p,prev,areas){
+  const d=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+  if(prev&&prev.every(Boolean)){
+    const perms=[[0,1,2],[0,2,1],[1,0,2],[1,2,0],[2,0,1],[2,1,0]]; let best=null,bd=1e18;
+    for(const q of perms){ const s=d(p[q[0]],prev[0])+d(p[q[1]],prev[1])+d(p[q[2]],prev[2]); if(s<bd){bd=s;best=q;} }
+    assign.lastRule='tracked'; return best.map(i=>p[i]); }
+  let k=-1;
+  if(areas){ const o=[0,1,2].sort((a,b)=>areas[b]-areas[a]); if(areas[o[0]]>=1.7*areas[o[1]]){ k=o[0]; assign.lastRule='biggest sticker'; } }
+  if(k<0){ const pr=[[0,1,2],[0,2,1],[1,2,0]].map(([i,j,kk])=>({kk,dd:d(p[i],p[j])})).sort((a,b)=>b.dd-a.dd); k=pr[0].kk; assign.lastRule='geometry'; }
+  const o=[0,1,2].filter(i=>i!==k); let hip=p[o[0]],ank=p[o[1]]; if(hip.y>ank.y) [hip,ank]=[ank,hip];
+  return [hip,p[k],ank];
+}
+const swapKnee=pts=>[pts[1],pts[2],pts[0]];
+// Signed knee flexion: 0 = straight, + = bending, - = hyperextension. Sign uses the toes direction setting.
+function geom(p){ const [h,k,a]=p; const ux=k.x-h.x,uy=k.y-h.y,vx=a.x-k.x,vy=a.y-k.y;
+  const L1=Math.hypot(ux,uy),L2=Math.hypot(vx,vy);
+  const ang=Math.atan2(ux*vy-uy*vx,ux*vx+uy*vy)*180/Math.PI;
+  const flexion=toes==='right'?ang:-ang;
+  const r=((h.r||6)+(k.r||6)+(a.r||6))/3;
+  return {flexion,interior:180-Math.abs(ang),L1,L2,r}; }
+
+/* ================================================================ overlay */
+function drawOverlay(ctx,pts,angle,s,opts={}){
+  if(!pts) return;
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(0,0,0,.55)'; ctx.lineWidth=8*s; ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); ctx.lineTo(pts[1].x,pts[1].y); ctx.lineTo(pts[2].x,pts[2].y); ctx.stroke();
+  ctx.strokeStyle='#ffc24b'; ctx.lineWidth=3.6*s; ctx.stroke();
+  const g=geom(pts), ux=(pts[1].x-pts[0].x)/g.L1, uy=(pts[1].y-pts[0].y)/g.L1;
+  ctx.setLineDash([9*s,7*s]); ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=2.2*s;
+  ctx.beginPath(); ctx.moveTo(pts[1].x,pts[1].y); ctx.lineTo(pts[1].x+ux*g.L2*0.8,pts[1].y+uy*g.L2*0.8); ctx.stroke(); ctx.setLineDash([]);
+  const a0=Math.atan2(uy,ux), a1=Math.atan2(pts[2].y-pts[1].y,pts[2].x-pts[1].x); let da=a1-a0; while(da>Math.PI) da-=2*Math.PI; while(da<-Math.PI) da+=2*Math.PI;
+  ctx.strokeStyle='#5ef2d6'; ctx.lineWidth=3.5*s; ctx.beginPath(); ctx.arc(pts[1].x,pts[1].y,Math.min(g.L1,g.L2)*0.3,a0,a0+da,da<0); ctx.stroke();
+  const labels=['HIP','KNEE','ANKLE'], cols=mode==='three'?JOINTS.map(j=>targets3[j].css):[target.css,target.css,target.css];
+  pts.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(p.x,p.y,7*s,0,7); ctx.fillStyle=cols[i]; ctx.fill(); ctx.lineWidth=2.5*s; ctx.strokeStyle='#fff'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x-15*s,p.y); ctx.lineTo(p.x+15*s,p.y); ctx.moveTo(p.x,p.y-15*s); ctx.lineTo(p.x,p.y+15*s); ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=1.3*s; ctx.stroke();
+    ctx.font=`800 ${13*s}px -apple-system,Segoe UI,Roboto,Arial`; ctx.lineWidth=4*s; ctx.strokeStyle='rgba(0,0,0,.85)'; ctx.fillStyle='#fff';
+    ctx.strokeText(labels[i],p.x+13*s,p.y-11*s); ctx.fillText(labels[i],p.x+13*s,p.y-11*s); });
+  if(angle!=null&&isFinite(angle)){ const t=`${angle.toFixed(1)}°`; ctx.font=`800 ${30*s}px -apple-system,Segoe UI,Roboto,Arial`;
+    const x=pts[1].x+20*s, y=pts[1].y+38*s; ctx.lineWidth=6*s; ctx.strokeStyle='rgba(0,0,0,.85)'; ctx.strokeText(t,x,y); ctx.fillStyle='#ffc24b'; ctx.fillText(t,x,y); }
+  if(opts.loupe){ const {x,y}=opts.loupe, R=72*s, z=3, lx=R+12*s, ly=R+12*s;
+    ctx.save(); ctx.beginPath(); ctx.arc(lx,ly,R,0,7); ctx.clip(); ctx.drawImage(opts.src,x-R/z,y-R/z,2*R/z,2*R/z,lx-R,ly-R,2*R,2*R);
+    ctx.strokeStyle='#ff3d6e'; ctx.lineWidth=1.6*s; ctx.beginPath(); ctx.moveTo(lx-R,ly); ctx.lineTo(lx+R,ly); ctx.moveTo(lx,ly-R); ctx.lineTo(lx,ly+R); ctx.stroke(); ctx.restore();
+    ctx.strokeStyle='#fff'; ctx.lineWidth=3*s; ctx.beginPath(); ctx.arc(lx,ly,R,0,7); ctx.stroke(); }
+  ctx.restore();
+}
+function dispScale(cv){ const w=cv.getBoundingClientRect().width; return Math.max(1,w>50?cv.width/w:cv.width/700); }
+
+/* ================================================================ session form (shared by Live, Photo, Video) */
+const POSES={0:'standing_zero',1:'straight',2:'foot_flat_90',3:'max_flexion',4:'other'};
+const POSE_TXT={0:'Standing, leg straight',1:'Seated, leg straight on a stool',2:'Seated, foot flat, knee ~90°',3:'Seated, maximum bend',4:'Other'};
+const S=Object.assign({subject:'S01',trial:'1',hold:'0',note:''},lsGet('akg_form',{}));
+const forms=[];
+function buildForm(id,withPose=true){
+  const f=$(id);
+  f.innerHTML=`<label class="f">Subject<input data-k="subject" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+    <label class="f">Trial<select data-k="trial"><option>1</option><option>2</option><option>3</option></select></label>
+    ${withPose?`<label class="f pose">Pose<select data-k="hold">${[0,1,2,3,4].map(i=>`<option value="${i}">${i} · ${POSE_TXT[i]}</option>`).join('')}</select></label>`:''}
+    <label class="f wide">Note<input data-k="note" placeholder="optional" autocomplete="off"></label>`;
+  f.querySelectorAll('[data-k]').forEach(el=>{ el.addEventListener('input',()=>{ S[el.dataset.k]=el.value; lsSet('akg_form',S); syncForms(f); onSession(); }); });
+  forms.push(f); syncForms(); }
+function syncForms(except){ for(const f of forms){ if(f===except) continue; f.querySelectorAll('[data-k]').forEach(el=>{ if(el.value!==String(S[el.dataset.k])) el.value=S[el.dataset.k]; }); } }
+function getS(){ return {subject:String(S.subject).trim().toUpperCase()||'S01',trial:+S.trial||1,hold:+S.hold||0,note:String(S.note||'').trim()}; }
+function setHold(h){ S.hold=String(h); lsSet('akg_form',S); syncForms(); onSession(); }
+function onSession(){ renderGuide(); }
+function showMsgs(id,list){ const ul=$(id); ul.textContent=''; for(const m of list){ const li=document.createElement('li'); li.className=m.t||''; li.textContent=m.m; ul.appendChild(li); } }
+
+/* ================================================================ storage */
+const store={mode:'local',db:null,recs:[],checks:[],listeners:[],
+  async init(){
+    this.recs=lsGet('akg_recs',[]); this.checks=lsGet('akg_checks',[]); this.emit();
+    let db=null; try{ if(window.claude&&window.claude.use) db=await window.claude.use('db'); }catch(e){ db=null; }
+    if(!db){ try{ navigator.storage&&navigator.storage.persist&&navigator.storage.persist(); }catch(e){} return; }
+    this.db=db; this.mode='db'; setChip('saved online',true);
+    db.collection('measurements').onSnapshot(s=>{ this.recs=s.docs.map(d=>({id:d.id,...d.data()})); lsSet('akg_recs',this.recs); this.emit(); },
+      ()=>{ setChip('this device only',false); this.mode='local'; });
+    db.collection('checks').onSnapshot(s=>{ this.checks=s.docs.map(d=>({id:d.id,...d.data()})); lsSet('akg_checks',this.checks); this.emit(); },()=>{});
+  },
+  async add(kind,rec){ rec.ts=new Date().toISOString(); rec.app=APP_VERSION; const list=kind==='checks'?this.checks:this.recs;
+    if(this.mode==='db'){ try{ const ref=await this.db.collection(kind).add(rec); rec.id=ref&&ref.id; return rec; }catch(e){ toast('Could not save online; saved on this device.'); } }
+    rec.id='L'+Date.now()+Math.random().toString(36).slice(2,6); list.push(rec); lsSet(kind==='checks'?'akg_checks':'akg_recs',list); this.emit(); return rec; },
+  async remove(kind,id){ const list=kind==='checks'?this.checks:this.recs;
+    if(this.mode==='db'&&!String(id).startsWith('L')){ try{ await this.db.doc(kind+'/'+id).delete(); return; }catch(e){ toast('Could not delete online.'); return; } }
+    const i=list.findIndex(r=>r.id===id); if(i>=0) list.splice(i,1); lsSet(kind==='checks'?'akg_checks':'akg_recs',list); this.emit(); },
+  on(fn){ this.listeners.push(fn); }, emit(){ this.listeners.forEach(f=>f()); } };
+// Catches the two most likely data errors on the day: a pose captured at the wrong moment, and a camera that is not side-on.
+function poseCheck(rec){
+  const w=[], a=rec.angle, h=+rec.hold;
+  if(h===0&&Math.abs(a)>12) w.push(`Pose 0 (standing) read ${fmt(a)}°; standing straight should be near 0°.`);
+  if(h===1&&a>20) w.push(`Pose 1 (leg straight) read ${fmt(a)}°; a straight leg should be under about 20°.`);
+  if(h===2&&(a<55||a>125)) w.push(`Pose 2 (foot flat, ~90°) read ${fmt(a)}°; expected roughly 60–120°.`);
+  if(h===3&&a<85) w.push(`Pose 3 (maximum bend) read ${fmt(a)}°; expected well above 90°.`);
+  if(rec.ratio){ const z=store.recs.filter(r=>r.subject===rec.subject&&+r.trial===+rec.trial&&+r.hold===0&&r.ratio&&r.id!==rec.id).pop();
+    if(z){ const dlt=rec.ratio/z.ratio-1; if(Math.abs(dlt)>0.15) w.push(`Thigh-to-shank proportions changed by ${fmt(100*dlt,0)}% since the standing pose: the camera may not be side-on, or the leg turned. Check the view.`); } }
+  if(w.length) w.push('If this capture is wrong, tap Undo last (Live) or delete it in Records, then capture again.');
+  return w; }
+function warnCapture(listId,rec){ const w=poseCheck(rec); if(w.length){ showMsgs(listId,w.map(m=>({t:'warn',m}))); beep(330,0.25); toast('Check this capture: see the warning below'); return true; } return false; }
+let lastExport=lsGet('akg_lastexport','');
+function markExported(){ lastExport=new Date().toISOString(); lsSet('akg_lastexport',lastExport); updateExpChip(); }
+function updateExpChip(){ const n=store.recs.filter(r=>!lastExport||String(r.ts)>lastExport).length, c=$('expChip'); c.hidden=n===0; c.textContent=`${n} not exported`; }
+function setChip(t,ok){ const c=$('storeChip'); c.hidden=false; c.textContent=t; c.className='chip '+(ok?'ok':'bad'); }
+function recordFrom(g,extra){ const f=getS(); return {subject:f.subject,trial:f.trial,hold:f.hold,pose:POSES[f.hold]||'other',angle:+g.flexion.toFixed(2),interior:+g.interior.toFixed(2),toes,note:f.note,...extra}; }
+
+/* ================================================================ capture feedback */
+let actx=null;
+function beep(freq=880,dur=0.12){ if(!soundOn) return; try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); const o=actx.createOscillator(),g=actx.createGain();
+  o.frequency.value=freq; o.type='sine'; g.gain.setValueAtTime(0.0001,actx.currentTime); g.gain.exponentialRampToValueAtTime(0.25,actx.currentTime+0.01); g.gain.exponentialRampToValueAtTime(0.0001,actx.currentTime+dur);
+  o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime+dur+0.02); }catch(e){} }
+let voiceOn=lsGet('akg_voice',true);
+const POSE_SAY={0:'Pose zero. Stand straight, weight on both feet. Hold still.',1:'Pose one. Sit, rest the heel on the stool, and straighten the knee. Hold still.',
+  2:'Pose two. Foot flat on the floor, knee at a right angle. Hold still.',3:'Pose three. Slide the heel back as far as is comfortable. Hold still.'};
+function say(t,interrupt=true){ if(!voiceOn||!('speechSynthesis' in window)) return; try{ if(interrupt) speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(t); u.rate=1; u.pitch=1; speechSynthesis.speak(u); window.__said=(window.__said||[]).concat(t); }catch(e){} }
+function buzz(){ try{ navigator.vibrate&&navigator.vibrate(50); }catch(e){} }
+
+/* ================================================================ still-image station (Photo and Accuracy tabs) */
+const MAXPX=3200;  // large phone photos are scaled to this long side (iOS canvas limit; no loss of precision at this size)
+function makeStation(cfg){
+  const st={img:null,src:document.createElement('canvas'),pts:null,method:'auto',res:null,drag:-1,manualIdx:-1};
+  const view=$(cfg.canvas), stage=$(cfg.stage), vctx=view.getContext('2d');
+  function render(loupe){ if(!st.img) return; vctx.drawImage(st.src,0,0); const ok=st.pts&&st.pts.every(Boolean); const s=dispScale(view);
+    if(ok) drawOverlay(vctx,st.pts,cfg.angle?cfg.angle(geom(st.pts)):geom(st.pts).flexion,s,loupe?{loupe,src:st.src}:{});
+    else if(st.pts){ st.pts.forEach(p=>{ if(!p) return; vctx.beginPath(); vctx.arc(p.x,p.y,8*s,0,7); vctx.fillStyle='#ffc24b'; vctx.fill(); }); }
+    if(st.manualIdx>=0){ vctx.font=`800 ${22*s}px -apple-system,Segoe UI,Roboto,Arial`; vctx.fillStyle='#ffc24b'; vctx.strokeStyle='#000'; vctx.lineWidth=5*s;
+      const t=`Tap the ${['HIP','KNEE','ANKLE'][st.manualIdx]} sticker`; vctx.strokeText(t,16*s,view.height-20*s); vctx.fillText(t,16*s,view.height-20*s); }
+    cfg.onChange&&cfg.onChange(st); }
+  function run(){ if(!st.img) return; st.res=detect(st.src,{workWidth:1000}); st.pts=st.res.pts; st.method='auto'; st.manualIdx=-1; render(); }
+  async function load(file){ if(!file) return; let bmp;
+    try{ bmp=await createImageBitmap(file,{imageOrientation:'from-image'}); }
+    catch(e){ try{ bmp=await createImageBitmap(file); }catch(e2){
+      try{ bmp=await new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=rej; im.src=URL.createObjectURL(file); }); }
+      catch(e3){ toast('This image format cannot be read here. Try a JPG or PNG.'); return; } } }
+    const w=bmp.width||bmp.naturalWidth, h=bmp.height||bmp.naturalHeight, k=Math.min(1,MAXPX/Math.max(w,h));
+    st.img=bmp; st.src.width=Math.round(w*k); st.src.height=Math.round(h*k);
+    const sctx=st.src.getContext('2d',{willReadFrequently:true}); sctx.imageSmoothingQuality='high'; sctx.drawImage(bmp,0,0,st.src.width,st.src.height);
+    view.width=st.src.width; view.height=st.src.height; view.hidden=false; const e=stage.querySelector('.empty'); if(e) e.hidden=true;
+    run(); requestAnimationFrame(()=>render()); }
+  const toImg=ev=>{ const r=view.getBoundingClientRect(); return {x:(ev.clientX-r.left)*view.width/r.width,y:(ev.clientY-r.top)*view.height/r.height,k:view.width/r.width}; };
+  view.addEventListener('pointerdown',ev=>{ if(!st.img) return; const p=toImg(ev);
+    if(st.manualIdx>=0){ st.pts=st.pts&&st.pts.length===3?st.pts:[null,null,null]; st.pts[st.manualIdx]={x:p.x,y:p.y,r:8,seed:true}; st.manualIdx++;
+      if(st.manualIdx>2){ st.manualIdx=-1; st.method='manual';
+        const rs=detect(st.src,{workWidth:1000,prev:st.pts}); if(rs.pts&&rs.pts.every((q,i)=>Math.hypot(q.x-st.pts[i].x,q.y-st.pts[i].y)<60*p.k)){ st.pts=rs.pts; st.method='tapped, snapped to stickers'; } }
+      render(); return; }
+    if(picking){ const c=sampleColor(st.src.getContext('2d',{willReadFrequently:true}),Math.round(p.x),Math.round(p.y));
+      if(c){ applyPicked(c); run(); rerunAll(st); } else toast('That spot is not a bright colour. Tap the middle of a sticker.'); return; }
+    if(st.pts&&st.pts.every(Boolean)){ let best=-1,bd=1e9; st.pts.forEach((q,i)=>{ const dd=Math.hypot(q.x-p.x,q.y-p.y); if(dd<bd){bd=dd;best=i;} });
+      if(bd<40*p.k){ st.drag=best; view.setPointerCapture(ev.pointerId); render({x:p.x,y:p.y}); } } });
+  view.addEventListener('pointermove',ev=>{ if(st.drag<0) return; const p=toImg(ev); st.pts[st.drag]={...st.pts[st.drag],x:p.x,y:p.y}; st.method='adjusted'; render({x:p.x,y:p.y}); });
+  const end=()=>{ if(st.drag>=0){ st.drag=-1; render(); } }; view.addEventListener('pointerup',end); view.addEventListener('pointercancel',end);
+  st.load=load; st.run=run; st.render=render; st.manual=()=>{ if(!st.img) return; st.pts=[null,null,null]; st.manualIdx=0; render(); };
+  st.swap=()=>{ if(st.pts&&st.pts.every(Boolean)){ st.pts=swapKnee(st.pts); st.method='adjusted'; render(); } };
+  return st; }
+const stations=[];
+function rerunAll(except){ for(const s of stations){ if(s!==except&&s.img) s.run(); } }
+
+/* ================================================================ PHOTO */
+buildForm('pForm');
+const pSt=makeStation({canvas:'pCanvas',stage:'pStage',onChange(st){
+  const ok=!!(st.pts&&st.pts.every(Boolean)), g=ok?geom(st.pts):null;
+  $('pVal').textContent=g?fmt(g.flexion):'--.-';
+  $('pMeta').innerHTML=g?`knee flexion · interior ${fmt(g.interior)}°<br>${st.method==='auto'?'auto-detected · knee by '+(st.res&&st.res.kneeBy||''):st.method==='adjusted'?'auto + hand-adjusted':st.method==='manual'?'placed by hand':'tapped, snapped to the stickers'}`:(st.manualIdx>=0?'Placing points by hand…':'No angle yet');
+  $('pSave').disabled=!ok; $('pRedetect').disabled=!st.img; $('pManual').disabled=!st.img; $('pSwap').disabled=!ok;
+  const msgs=(st.res&&st.method==='auto')?st.res.msgs.slice():[]; if(ok&&!msgs.some(m=>m.t==='bad')) msgs.unshift({t:'ok',m:'Three stickers found. Drag any point to correct it.'});
+  showMsgs('pMsgs',msgs); }});
+stations.push(pSt);
+$('pCam').onchange=e=>{ pSt.load(e.target.files[0]); e.target.value=''; }; $('pFile').onchange=e=>{ pSt.load(e.target.files[0]); e.target.value=''; };
+$('pRedetect').onclick=()=>pSt.run(); $('pManual').onclick=()=>pSt.manual(); $('pSwap').onclick=()=>pSt.swap();
+$('pSave').onclick=async()=>{ const g=geom(pSt.pts); const f=getS(); const rec=await store.add('measurements',recordFrom(g,{source:'photo',method:pSt.method,sd:null,n_frames:1,ratio:+(g.L1/g.L2).toFixed(4)}));
+  if(!warnCapture('pMsgs',rec)){ toast(`Saved ${fmt(g.flexion)}° · ${f.subject} trial ${f.trial} pose ${f.hold}`); beep(); } if(f.hold<3) setHold(f.hold+1); };
+
+/* ================================================================ VIDEO */
+buildForm('vForm',false);
+const video=$('vVideo'), vView=$('vCanvas'), vctx=vView.getContext('2d');
+const vSrc=document.createElement('canvas'); let vSrcCtx=null; let series=[],holds=[],vStop=false,vUrl=null,vName='',vStart=null;
+async function vLoad(file){ if(!file) return; if(vUrl) URL.revokeObjectURL(vUrl); vUrl=URL.createObjectURL(file); vName=file.name||'video';
+  video.src=vUrl; series=[]; holds=[]; renderHolds(); $('vChart').hidden=true; $('vRun').disabled=true; showMsgs('vMsgs',[{m:'Loading video…'}]);
+  try{ await new Promise((res,rej)=>{ video.onloadeddata=res; video.onerror=()=>rej(); }); }
+  catch(e){ showMsgs('vMsgs',[{t:'bad',m:'This browser cannot decode the video. On iPhone set Settings → Camera → Formats → Most Compatible, or analyse on the phone that recorded it.'}]); return; }
+  try{ await video.play(); video.pause(); }catch(e){}   // iOS Safari only decodes frames for seeking after one play()
+  vStart=null; vSeeded=false; await seek(0); const r0=drawFrame(); vStart=r0.pts; $('vRun').disabled=false; $('vSwap').disabled=!r0.pts; $('vSeed').disabled=false;
+  showMsgs('vMsgs',[{t:r0.pts?'ok':'warn',m:`${fmt(video.duration,1)} s loaded. ${r0.pts?'Check the HIP / KNEE / ANKLE labels on this first frame, then tap Analyse video. Wrong spots? Tap stickers.':'No reading on the first frame. Tap stickers and tap HIP, KNEE, ANKLE on the picture, then Analyse video.'}`}]); }
+function seek(t){ return new Promise(res=>{ let done=false; const fin=()=>{ if(done) return; done=true; video.removeEventListener('seeked',fin); res(); };
+  video.addEventListener('seeked',fin); setTimeout(fin,1500); video.currentTime=Math.min(Math.max(0,t),Math.max(0,video.duration-0.001)); }); }
+function grab(){ const w=video.videoWidth,h=video.videoHeight,k=Math.min(1,1280/Math.max(w,h)); const W=Math.round(w*k),H=Math.round(h*k);
+  if(vSrc.width!==W||vSrc.height!==H){ vSrc.width=W; vSrc.height=H; vSrcCtx=null; }
+  if(!vSrcCtx) vSrcCtx=vSrc.getContext('2d',{willReadFrequently:true}); vSrcCtx.drawImage(video,0,0,W,H); }
+function drawFrame(prev){ grab(); const r=detect(vSrc,{workWidth:640,prev,fullCtx:vSrcCtx});
+  if(vView.width!==vSrc.width||vView.height!==vSrc.height){ vView.width=vSrc.width; vView.height=vSrc.height; }
+  vView.hidden=false; const e=$('vStage').querySelector('.empty'); if(e) e.hidden=true;
+  vctx.drawImage(vSrc,0,0); const g=r.pts?geom(r.pts):null; drawOverlay(vctx,r.pts,g?g.flexion:null,dispScale(vView));
+  $('vVal').textContent=g?fmt(g.flexion):'--.-'; $('vMeta').textContent=`t = ${fmt(video.currentTime,2)} s`; return r; }
+$('vCam').onchange=e=>{ vLoad(e.target.files[0]); e.target.value=''; }; $('vFile').onchange=e=>{ vLoad(e.target.files[0]); e.target.value=''; };
+let vSeedIdx=-1, vSeedPts=[], vSeeded=false;
+$('vSeed').onclick=async()=>{ await seek(0); drawFrame(); vSeedIdx=0; vSeedPts=[]; showMsgs('vMsgs',[{m:'Tap the HIP sticker on the picture, then KNEE, then ANKLE.'}]); };
+vView.addEventListener('pointerdown',ev=>{ if(vSeedIdx<0) return; const r=vView.getBoundingClientRect(); vSeedPts.push({x:(ev.clientX-r.left)*vView.width/r.width,y:(ev.clientY-r.top)*vView.height/r.height,r:10,seed:true}); vSeedIdx++;
+  vctx.beginPath(); vctx.arc(vSeedPts[vSeedPts.length-1].x,vSeedPts[vSeedPts.length-1].y,12*dispScale(vView),0,7); vctx.strokeStyle='#ffc24b'; vctx.lineWidth=4*dispScale(vView); vctx.stroke();
+  if(vSeedIdx<3){ showMsgs('vMsgs',[{m:`Now tap the ${['HIP','KNEE','ANKLE'][vSeedIdx]} sticker.`}]); return; }
+  vSeedIdx=-1; const rr=detect(vSrc,{workWidth:640,prev:vSeedPts,fullCtx:vSrcCtx});
+  vStart=rr.pts||vSeedPts; vSeeded=true; vctx.drawImage(vSrc,0,0); const g=geom(vStart); drawOverlay(vctx,vStart,g.flexion,dispScale(vView)); $('vVal').textContent=fmt(g.flexion); $('vRun').disabled=false;
+  showMsgs('vMsgs',[{t:rr.pts?'ok':'warn',m:rr.pts?'Locked on to the three stickers. Tap Analyse video.':'Could not find stickers exactly at those spots; the analysis will start from your taps. Tap Analyse video.'}]); });
+vView.addEventListener('pointerdown',ev=>{ if(!picking) return; const r=vView.getBoundingClientRect(); const x=(ev.clientX-r.left)*vView.width/r.width,y=(ev.clientY-r.top)*vView.height/r.height;
+  const c=sampleColor(vSrcCtx,Math.round(x),Math.round(y)); if(c){ applyPicked(c); drawFrame(); } });
+$('vSwap').onclick=async()=>{ if(!vStart) return; vStart=swapKnee(vStart); await seek(0); grab(); vctx.drawImage(vSrc,0,0); const g=geom(vStart); drawOverlay(vctx,vStart,g.flexion,dispScale(vView)); $('vVal').textContent=fmt(g.flexion); };
+$('vRun').onclick=async()=>{ const fps=+$('vRate').value,dt=1/fps,T=video.duration; if(!isFinite(T)||T<=0) return;
+  vStop=false; $('vStop').hidden=false; $('vRun').disabled=true; $('vProg').hidden=false; series=[]; let prev=vStart,miss=0,lastUI=0,goodT=0;
+  for(let t=0;t<=T-0.0005&&!vStop;t+=dt){ await seek(t); const r=drawFrame(prev);
+    if(r.pts){ prev=r.pts; goodT=video.currentTime; series.push({t:video.currentTime,a:geom(r.pts).flexion,pts:r.pts}); } else { miss++; if(video.currentTime-goodT>(vSeeded?2:0.6)) prev=null; series.push({t:video.currentTime,a:NaN}); }
+    const now=performance.now(); if(now-lastUI>120){ lastUI=now; $('vProg').firstElementChild.style.width=`${100*t/T}%`; await new Promise(r=>setTimeout(r,0)); } }
+  $('vStop').hidden=true; $('vRun').disabled=false; $('vProg').hidden=true;
+  holds=findHolds(series); renderHolds(); drawChart();
+  const good=series.filter(s=>isFinite(s.a)), mx=good.length?Math.max(...good.map(s=>s.a)):NaN;
+  showMsgs('vMsgs',[{t:miss>series.length*0.2?'warn':'ok',m:`${series.length} frames measured, stickers found in ${good.length} (${fmt(100*good.length/Math.max(1,series.length),0)} %). Maximum flexion ${fmt(mx)}°. ${holds.length} steady hold(s).`}]);
+  $('vSeries').disabled=!good.length; $('vSaveAll').disabled=holds.length<1; };
+$('vStop').onclick=()=>{ vStop=true; };
+function findHolds(s,tol=1.5,minDur=0.8){ const out=[]; let i=0;
+  while(i<s.length){ if(!isFinite(s[i].a)){ i++; continue; } let lo=s[i].a,hi=s[i].a,j=i+1;
+    while(j<s.length&&isFinite(s[j].a)){ const nlo=Math.min(lo,s[j].a),nhi=Math.max(hi,s[j].a); if(nhi-nlo>2*tol) break; lo=nlo; hi=nhi; j++; }
+    const dur=s[j-1].t-s[i].t; if(dur>=minDur){ const seg=s.slice(i,j).map(x=>x.a); out.push({t0:s[i].t,t1:s[j-1].t,a:median(seg),sd:sd(seg),n:seg.length,mid:s[(i+j)>>1].t}); i=j; } else i++; }
+  return out; }
+function guessPoses(hs){ const n=hs.length, g=new Array(n).fill(-1); if(n===4) return [0,1,2,3]; if(n===3) return [1,2,3];
+  let k=0; if(n&&Math.abs(hs[0].a)<12){ g[0]=0; k=1; } let pose=1; for(let i=k;i<n&&pose<=3;i++) g[i]=pose++; return g; }
+function renderHolds(){ const tb=$('vHolds'); tb.textContent='';
+  if(!holds.length){ tb.innerHTML=`<tr><td colspan="5" style="color:var(--muted)">${series.length?'No steady holds found (the angle never stayed within ±1.5° for 0.8 s).':'No video analysed yet.'}</td></tr>`; return; }
+  const guess=guessPoses(holds);
+  holds.forEach((h,i)=>{ const tr=document.createElement('tr'); tr.style.cursor='pointer';
+    tr.innerHTML=`<td class="n">${i+1}</td><td class="n">${fmt(h.t0,1)}–${fmt(h.t1,1)}</td><td class="n"><b>${fmt(h.a,1)}°</b></td><td class="n">${fmt(h.sd,2)}</td><td></td>`;
+    const sel=document.createElement('select'); sel.setAttribute('aria-label','Pose for hold '+(i+1)); sel.style.cssText='width:auto;min-height:36px;padding:4px 6px;font-size:14px';
+    sel.innerHTML='<option value="-1">skip</option><option value="0">0 standing</option><option value="1">1 straight</option><option value="2">2 ~90°</option><option value="3">3 max</option>';
+    sel.value=String(h.pose!=null?h.pose:guess[i]); sel.onclick=e=>e.stopPropagation(); sel.onchange=()=>{ h.pose=+sel.value; };
+    h.pose=+sel.value; tr.lastElementChild.appendChild(sel); tr.onclick=async()=>{ await seek(h.mid); drawFrame(); }; tb.appendChild(tr); }); }
+$('vSaveAll').onclick=async()=>{ const f=getS(), chosen=holds.filter(h=>h.pose>=0);
+  const dup=chosen.map(h=>h.pose).filter((v,i,a)=>a.indexOf(v)!==i); if(dup.length){ toast(`Pose ${dup[0]} is chosen twice. Fix the Pose column first.`); return; }
+  if(!chosen.length){ toast('No hold has a pose chosen.'); return; }
+  for(const h of chosen) await store.add('measurements',{subject:f.subject,trial:f.trial,hold:h.pose,pose:POSES[h.pose],angle:+h.a.toFixed(2),toes,note:f.note,source:'video',method:'auto',sd:+h.sd.toFixed(3),n_frames:h.n,t0:+h.t0.toFixed(2),t1:+h.t1.toFixed(2),file:vName});
+  toast(`Saved ${chosen.length} hold(s) for ${f.subject} trial ${f.trial}`); beep(); };
+$('vSeries').onclick=()=>{ const f=getS(), rows=['time_s,flexion_deg,hip_x,hip_y,knee_x,knee_y,ankle_x,ankle_y'];
+  for(const s of series) rows.push(isFinite(s.a)?[s.t.toFixed(3),s.a.toFixed(2),...s.pts.flatMap(p=>[p.x.toFixed(1),p.y.toFixed(1)])].join(','):`${s.t.toFixed(3)},,,,,,,`);
+  saveFile(`${f.subject}_trial${f.trial}_video_angles.csv`,rows.join('\n')+'\n'); };
+function drawChart(){ const c=$('vChart'); c.hidden=false; const dpr=window.devicePixelRatio||1, W=c.clientWidth||600, H=200; c.width=W*dpr; c.height=H*dpr; const x=c.getContext('2d'); x.scale(dpr,dpr);
+  const cs=getComputedStyle(document.documentElement), ink=cs.getPropertyValue('--muted').trim(), rule=cs.getPropertyValue('--line').trim(), acc=cs.getPropertyValue('--angle').trim();
+  x.clearRect(0,0,W,H); const good=series.filter(s=>isFinite(s.a)); if(!good.length) return; const T=series[series.length-1].t||1;
+  const amax=Math.max(10,Math.ceil(Math.max(...good.map(s=>s.a))/10)*10), amin=Math.min(0,Math.floor(Math.min(...good.map(s=>s.a))/10)*10);
+  const L=40,R=10,Tp=10,B=24, X=t=>L+(W-L-R)*t/T, Y=a=>Tp+(H-Tp-B)*(1-(a-amin)/(amax-amin));
+  x.font='11px ui-monospace,Menlo,Consolas,monospace'; x.fillStyle=ink; x.strokeStyle=rule; x.lineWidth=1;
+  const step=(amax-amin)>100?30:(amax-amin)>50?20:10;
+  for(let a=amin;a<=amax;a+=step){ x.beginPath(); x.moveTo(L,Y(a)); x.lineTo(W-R,Y(a)); x.stroke(); x.fillText(a+'°',4,Y(a)+4); }
+  x.fillText('0 s',L,H-6); x.fillText(fmt(T,1)+' s',W-R-44,H-6);
+  for(const h of holds){ x.fillStyle='rgba(124,92,255,.22)'; x.fillRect(X(h.t0),Tp,Math.max(2,X(h.t1)-X(h.t0)),H-Tp-B); }
+  x.strokeStyle=acc; x.lineWidth=2.2; x.beginPath(); let pen=false; for(const s of series){ if(!isFinite(s.a)){ pen=false; continue; } if(!pen){ x.moveTo(X(s.t),Y(s.a)); pen=true; } else x.lineTo(X(s.t),Y(s.a)); } x.stroke();
+  c.onclick=async ev=>{ const r=c.getBoundingClientRect(); const t=Math.max(0,(ev.clientX-r.left-L)/(W-L-R)*T); await seek(t); drawFrame(); }; }
+
+/* ================================================================ LIVE
+   The camera preview is the <video> itself (smooth at full frame rate); detection runs on a separate canvas
+   at up to ~30 Hz and only the overlay is redrawn. */
+buildForm('lForm');
+const lVideo=$('lVideo'), lOver=$('lOver'), octx=lOver.getContext('2d'), lCam=$('lCam');
+const lCap=document.createElement('canvas'); let lCapCtx=null;
+let lSeedIdx=-1,lSeedPts=[],lSeed=null,lSeedUntil=0,suspectUntil=0,lastGoodPts=null,lastGoodT=0,lStream=null,lRun=false,buf=[],lPrev=null,armed=true,lastCap=null,lastCapT=0,facing='environment',wake=null,lostSince=0,movedSince=false,lastProc=0,procCost=0,lastPts=null;
+async function startCam(){ if(lStream) lStream.getTracks().forEach(t=>t.stop());
+  lStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30}},audio:false});
+  lVideo.srcObject=lStream; await lVideo.play();
+  await new Promise(r=>{ if(lVideo.videoWidth) r(); else lVideo.onloadedmetadata=()=>r(); }); sizeCam(); }
+function sizeCam(){ const w=lVideo.videoWidth,h=lVideo.videoHeight; if(!w) return; lCam.hidden=false; $('lEmpty').hidden=true;
+  lCam.style.aspectRatio=`${w} / ${h}`; lCam.style.width=`min(100%, calc(var(--stageh) * ${(w/h).toFixed(4)}))`;
+  if(lOver.width!==w||lOver.height!==h){ lOver.width=w; lOver.height=h; }
+  if(lCap.width!==w||lCap.height!==h){ lCap.width=w; lCap.height=h; lCapCtx=null; } }
+async function keepAwake(){ try{ if(lRun&&navigator.wakeLock) wake=await navigator.wakeLock.request('screen'); }catch(e){} }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible') keepAwake(); });
+$('lFlip').onclick=async()=>{ facing=facing==='environment'?'user':'environment'; lPrev=null; buf=[]; try{ await startCam(); }catch(e){ toast('Could not switch camera'); } };
+$('lStart').onclick=async()=>{ try{ if(voiceOn&&'speechSynthesis' in window){ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } }catch(e){}
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ showMsgs('lMsgs',[{t:'bad',m:'This browser cannot open the camera here. Open the app from its https:// address (or the installed icon), or use the Video tab.'}]); return; }
+  try{ await startCam(); }
+  catch(e){ showMsgs('lMsgs',[{t:'bad',m:'Camera access was refused. Allow the camera for this app in the phone settings, or use the Video tab to record and analyse.'}]); return; }
+  try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)(); actx.resume&&actx.resume(); }catch(e){}
+  lRun=true; keepAwake(); armed=true; lastCap=null; buf=[]; lPrev=null;
+  if($('lAuto').checked&&getS().hold<=3) say('Camera on. '+POSE_SAY[getS().hold]);
+  $('lStopCam').disabled=false; $('lFlip').disabled=false; $('lCap').disabled=false; $('lLock').disabled=false; $('lSwap').disabled=false; $('lStart').disabled=true; showMsgs('lMsgs',[]); tick(); };
+function stopCam(){ lRun=false; if(lStream) lStream.getTracks().forEach(t=>t.stop()); lStream=null; try{ wake&&wake.release(); }catch(e){} wake=null;
+  $('lStart').disabled=false; $('lStopCam').disabled=true; $('lFlip').disabled=true; $('lCap').disabled=true; octx.clearRect(0,0,lOver.width,lOver.height); }
+$('lStopCam').onclick=stopCam;
+$('lLock').onclick=()=>{ if(!lRun) return; lSeedIdx=0; lSeedPts=[]; toast('Tap the HIP sticker on the camera view'); };
+lOver.addEventListener('pointerdown',ev=>{ if(lSeedIdx>=0){ const r=lOver.getBoundingClientRect(); lSeedPts.push({x:(ev.clientX-r.left)*lOver.width/r.width,y:(ev.clientY-r.top)*lOver.height/r.height,r:10,seed:true}); lSeedIdx++;
+    if(lSeedIdx<3){ toast(`Now tap the ${['HIP','KNEE','ANKLE'][lSeedIdx]} sticker`); return; }
+    lSeed=lSeedPts.slice(); lPrev=lSeed; lSeedUntil=performance.now()+4000; lSeedIdx=-1; toast('Locked on. GonioLens now follows these three stickers.'); return; } });
+lOver.addEventListener('pointerdown',ev=>{ if(!picking||!lCapCtx) return; const r=lOver.getBoundingClientRect(); const x=(ev.clientX-r.left)*lOver.width/r.width,y=(ev.clientY-r.top)*lOver.height/r.height;
+  const c=sampleColor(lCapCtx,Math.round(x),Math.round(y)); if(c) applyPicked(c); else toast('That spot is not a bright colour. Tap the middle of a sticker.'); });
+function schedule(){ if(!lRun) return; if(lVideo.requestVideoFrameCallback) lVideo.requestVideoFrameCallback(tick); else requestAnimationFrame(tick); }
+function tick(){ if(!lRun) return;
+  const now=performance.now();
+  if(lVideo.videoWidth&&now-lastProc>=Math.max(30,procCost*1.3)){ lastProc=now; const t0=performance.now();
+    if(lOver.width!==lVideo.videoWidth) sizeCam();
+    if(!lCapCtx) lCapCtx=lCap.getContext('2d',{willReadFrequently:true});
+    lCapCtx.drawImage(lVideo,0,0,lCap.width,lCap.height);
+    const r=detect(lCap,{workWidth:480,prev:lPrev||(now-lastGoodT<600?lastGoodPts:null)||(now<lSeedUntil?lSeed:null),fullCtx:lCapCtx});
+    octx.clearRect(0,0,lOver.width,lOver.height);
+    if(r.pts){ lPrev=r.pts; lastPts=r.pts; lastGoodPts=r.pts; lastGoodT=now; lostSince=0; lSeedUntil=0; const g=geom(r.pts); buf.push({t:now,a:g.flexion}); drawOverlay(octx,r.pts,null,dispScale(lOver)); }
+    else { lPrev=null; lastPts=null; if(!lostSince) lostSince=now; buf=[]; }
+    if(lSeedIdx>=0) lSeedPts.forEach(p=>{ octx.beginPath(); octx.arc(p.x,p.y,12,0,7); octx.strokeStyle='#ffc24b'; octx.lineWidth=4; octx.stroke(); });
+    buf=buf.filter(b=>now-b.t<1000);
+    const recent=buf.filter(b=>now-b.t<500).map(b=>b.a), s=recent.length>4?sd(recent):99, m=recent.length?median(recent):NaN;
+    $('lVal').textContent=isFinite(m)?fmt(m):'--.-';
+    const amb=!r.pts&&r.msgs[0]&&/More than one|Several objects|round objects/.test(r.msgs[0].m);
+    $('lMeta').innerHTML=r.pts?`steadiness SD ${s<90?fmt(s,2):'--'}°<br>${Math.round(1000/Math.max(30,procCost*1.3))} readings/s`:(r.msgs[0]?esc(r.msgs[0].m)+(amb?'<br><b>Tap Lock on stickers, then tap HIP, KNEE, ANKLE.</b>':''):'stickers not found');
+    $('lStab').style.width=`${Math.max(0,Math.min(100,100*(1-s/2)))}%`;
+    // re-arm auto-capture once the leg has clearly moved: angle changed by >5°, stickers lost for >0.7 s, or visible motion (SD > 3°)
+    if(isFinite(s)&&s>3&&s<90) movedSince=true;
+    if(!armed&&now-lastCapT>1500&&((lastCap!=null&&isFinite(m)&&Math.abs(m-lastCap)>5)||(lostSince&&now-lostSince>700)||movedSince)) armed=true;
+    if(r.pts&&r.suspect) suspectUntil=now+600;
+    if($('lAuto').checked&&armed&&s<0.4&&recent.length>=8&&now-lastCapT>1500&&now>suspectUntil) capture(m,s,recent.length);
+    procCost=performance.now()-t0; }
+  schedule(); }
+let lastSaved=null;
+async function capture(m,s,n){ const f=getS(), hold=f.hold; armed=false; lastCap=m; lastCapT=performance.now(); movedSince=false;
+  const gp=lPrev?geom(lPrev):null;
+  const rec=await store.add('measurements',{subject:f.subject,trial:f.trial,hold,pose:POSES[hold]||'other',angle:+m.toFixed(2),toes,note:f.note,source:'live',method:'auto',sd:+s.toFixed(3),n_frames:n,ratio:gp?+(gp.L1/gp.L2).toFixed(4):null,wearable_deg:wearNow()});
+  lastSaved={id:rec.id,hold,trial:f.trial}; $('lUndo').disabled=false;
+  buzz(); const warned=warnCapture('lMsgs',rec); if(!warned){ showMsgs('lMsgs',[]); beep(hold===3?1175:880); }
+  say(warned?`Check this capture: ${fmt(m)} degrees.`:`Captured, ${fmt(m)} degrees.`);
+  if(hold>=3&&$('lAuto').checked){ $('lAuto').checked=false; const nt=Math.min(3,f.trial+1); S.trial=String(nt); setHold(0);
+    if(!warned) toast(`${f.subject} trial ${f.trial} complete. Next: trial ${nt}, pose 0. Tick auto-capture to start it.`);
+    say(f.trial>=2?`Trial ${f.trial} complete. Session complete.`:`Trial ${f.trial} complete. Tick auto capture to start trial ${nt}.`,false);
+    if(f.trial>=2) setTimeout(()=>showCard(f.subject),900); }
+  else { if(!warned) toast(`Captured ${fmt(m)}° as pose ${hold}`); setHold(Math.min(4,hold+1)); if(hold+1<=3) say(POSE_SAY[hold+1],false); }
+  renderAgree(); }
+$('lAuto').onchange=()=>{ if($('lAuto').checked){ armed=true; lastCap=null; lastCapT=0; if(lRun&&getS().hold<=3) say(POSE_SAY[getS().hold]); } };
+$('lSwap').onclick=()=>{ if(lPrev) lPrev=swapKnee(lPrev); };
+$('lUndo').onclick=async()=>{ if(!lastSaved) return; await store.remove('measurements',lastSaved.id); S.trial=String(lastSaved.trial); setHold(lastSaved.hold);
+  armed=false; movedSince=false; lastCap=null; lastCapT=performance.now(); if(!$('lAuto').checked&&lastSaved.hold<=3) $('lAuto').checked=true;
+  toast(`Removed. Move into pose ${lastSaved.hold} and hold still; it captures again after the leg moves.`); say(`Removed. Pose ${lastSaved.hold} again.`); lastSaved=null; $('lUndo').disabled=true; showMsgs('lMsgs',[]); };
+$('lCap').onclick=()=>{ const now=performance.now(), recent=buf.filter(b=>now-b.t<500).map(b=>b.a); if(recent.length<3){ toast('Stickers not found right now'); return; } capture(median(recent),sd(recent),recent.length); };
+function renderGuide(){ const f=getS(), mine=store.recs.filter(r=>r.subject===f.subject&&+r.trial===f.trial), done=new Set(mine.map(r=>+r.hold));
+  const vals=[0,1,2,3].filter(h=>done.has(h)).map(h=>`${h}: ${fmt(mine.filter(r=>+r.hold===h).pop().angle)}°`).join(' · ');
+  const gi=$('lGImg'); if(f.hold<=3){ gi.hidden=false; gi.src=POSE_IMG[f.hold]; gi.alt=POSE_TXT[f.hold]; } else gi.hidden=true;
+  $('lGNum').textContent=f.hold; $('lGTxt').innerHTML=`${esc(POSE_TXT[f.hold])}<small>${esc(f.subject)} · trial ${f.trial} · ${done.has(f.hold)?'already saved, a new capture is averaged with it':'hold still to capture'}${vals?`<br>saved ${vals}`:''}</small>`;
+  const dots=$('lDots'); dots.textContent='';
+  for(let i=0;i<=3;i++){ const b=document.createElement('button'); b.textContent=i; b.title=POSE_TXT[i]; b.setAttribute('aria-label',`Pose ${i}: ${POSE_TXT[i]}`);
+    if(done.has(i)) b.classList.add('done'); if(i===f.hold) b.classList.add('cur'); b.onclick=()=>{ setHold(i); armed=true; }; dots.appendChild(b); } }
+
+/* ================================================================ ACCURACY CHECK */
+// Cards may be printed bending either way, so the check compares the unsigned angle with the true angle.
+const cSt=makeStation({canvas:'cCanvas',stage:'cStage',angle:g=>Math.abs(g.flexion),onChange(st){ const ok=!!(st.pts&&st.pts.every(Boolean)), g=ok?geom(st.pts):null, tru=+$('cTrue').value;
+  $('cVal').textContent=g?fmt(Math.abs(g.flexion),2):'--.-'; $('cSwap').disabled=!ok; $('cMeta').innerHTML=g?`true ${tru}° · error ${fmt(Math.abs(g.flexion)-tru,2)}°`:'No angle yet'; $('cSave').disabled=!ok;
+  showMsgs('cMsgs',st.res&&st.method==='auto'?st.res.msgs.filter(m=>!/toes/.test(m.m)):[]); }});
+stations.push(cSt);
+$('cSwap').onclick=()=>cSt.swap();
+$('cCam').onchange=e=>{ cSt.load(e.target.files[0]); e.target.value=''; }; $('cFile').onchange=e=>{ cSt.load(e.target.files[0]); e.target.value=''; }; $('cTrue').onchange=()=>cSt.render();
+$('cSave').onclick=async()=>{ const g=geom(cSt.pts), m=Math.abs(g.flexion), tru=+$('cTrue').value; await store.add('checks',{true_deg:tru,measured:+m.toFixed(3),error:+(m-tru).toFixed(3),condition:$('cCond').value,method:cSt.method}); toast(`Saved check: error ${fmt(m-tru,2)}°`); beep(); };
+function cardSVG(f){ // A4 landscape in mm. Thigh 90 mm, shank 80 mm; the shank swings LEFT, matching "toes point right".
+  const kx=160,ky=112,r=9,rad=f*Math.PI/180,hx=kx,hy=ky-90,ax=kx-80*Math.sin(rad),ay=ky+80*Math.cos(rad);
+  const three=mode==='three', pr=c=>/^#|^rgb/.test(c)?c:'#16c172';
+  const cH=three?pr(targets3.hip.css):pr(target.css), cK=three?pr(targets3.knee.css):pr(target.css), cA=three?pr(targets3.ankle.css):pr(target.css);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="297mm" height="210mm" viewBox="0 0 297 210"><rect width="297" height="210" fill="#fff"/>
+<line x1="${hx}" y1="${hy}" x2="${kx}" y2="${ky}" stroke="#bbb" stroke-width="0.4"/><line x1="${kx}" y1="${ky}" x2="${ax.toFixed(3)}" y2="${ay.toFixed(3)}" stroke="#bbb" stroke-width="0.4"/>
+<circle cx="${hx}" cy="${hy}" r="${r}" fill="${cH}"/><circle cx="${kx}" cy="${ky}" r="${three?r:r*1.7}" fill="${cK}"/><circle cx="${ax.toFixed(3)}" cy="${ay.toFixed(3)}" r="${r}" fill="${cA}"/>
+<text x="12" y="16" font-family="Arial" font-size="7" fill="#222">GonioLens calibration card · knee flexion ${f}° · ${three?'three-colour':'one-colour'} mode</text>
+<text x="12" y="200" font-family="Arial" font-size="4.5" fill="#555">Print on A4 (any scale keeps the angle). Stick flat on a wall, photograph square-on. This bar is 100 mm at 100 %.</text>
+<line x1="185" y1="198" x2="285" y2="198" stroke="#222" stroke-width="0.8"/></svg>`; }
+for(const f of [0,30,60,90,120]){ const b=document.createElement('button'); b.className='btn small'; b.textContent=`Card ${f}°`; b.onclick=()=>saveFile(`goniolens_card_${f}deg_${mode==='three'?'3colour':'1colour'}.svg`,cardSVG(f),'image/svg+xml'); $('cardRow').appendChild(b); }
+function renderChecks(){ const tb=$('cList'); tb.textContent=''; const rows=[...store.checks].sort((a,b)=>String(b.ts).localeCompare(String(a.ts)));
+  if(!rows.length) tb.innerHTML='<tr><td colspan="5" style="color:var(--muted)">No checks saved yet.</td></tr>';
+  for(const r of rows){ const tr=document.createElement('tr'); tr.innerHTML=`<td class="n">${r.true_deg}°</td><td class="n">${fmt(r.measured,2)}°</td><td class="n">${r.error>0?'+':''}${fmt(r.error,2)}°</td><td>${esc(r.condition)}</td><td></td>`;
+    const b=document.createElement('button'); b.className='btn small danger'; b.textContent='Delete'; b.onclick=()=>store.remove('checks',r.id); tr.lastElementChild.appendChild(b); tb.appendChild(tr); }
+  const groups={}; for(const r of rows){ (groups[r.condition]=groups[r.condition]||[]).push(r.error); (groups.ALL=groups.ALL||[]).push(r.error); }
+  const sb=$('cSummary'); sb.textContent=''; const keys=Object.keys(groups).sort((a,b)=>a==='ALL'?1:b==='ALL'?-1:a.localeCompare(b));
+  if(!keys.length) sb.innerHTML='<tr><td colspan="5" style="color:var(--muted)">No checks yet.</td></tr>';
+  for(const k of keys){ const e=groups[k], tr=document.createElement('tr'); if(k==='ALL') tr.style.fontWeight='700';
+    tr.innerHTML=`<td>${k==='ALL'?'All conditions':esc(k)}</td><td class="n">${e.length}</td><td class="n">${fmt(e.reduce((p,c)=>p+c,0)/e.length,2)}°</td><td class="n">${fmt(e.reduce((p,c)=>p+Math.abs(c),0)/e.length,2)}°</td><td class="n">${fmt(Math.max(...e.map(Math.abs)),2)}°</td>`; sb.appendChild(tr); } }
+$('cExport').onclick=()=>{ const rows=['true_deg,measured_deg,error_deg,condition,method,timestamp']; for(const r of store.checks) rows.push([r.true_deg,r.measured,r.error,`"${r.condition||''}"`,r.method||'',r.ts||''].join(',')); saveFile('goniometer_accuracy_checks.csv',rows.join('\n')+'\n'); };
+
+/* ================================================================ RECORDS */
+const key=r=>`${r.subject}|${r.trial}|${r.hold}`;
+function renderRecs(){ const sel=$('rFilter'), cur=sel.value, subs=[...new Set(store.recs.map(r=>r.subject))].sort();
+  sel.innerHTML='<option value="">all</option>'+subs.map(s=>`<option>${esc(s)}</option>`).join(''); sel.value=subs.includes(cur)?cur:'';
+  const counts={}; for(const r of store.recs) counts[key(r)]=(counts[key(r)]||0)+1;
+  const rows=store.recs.filter(r=>!sel.value||r.subject===sel.value).sort((a,b)=>String(a.subject).localeCompare(String(b.subject))||a.trial-b.trial||a.hold-b.hold||String(a.ts).localeCompare(String(b.ts)));
+  const tb=$('rList'); tb.textContent='';
+  if(!rows.length){ tb.innerHTML='<tr><td colspan="9" style="color:var(--muted)">No readings saved yet. Measure in Live, Photo or Video and save.</td></tr>'; renderGuide(); return; }
+  for(const r of rows){ const tr=document.createElement('tr'), d=r.ts?new Date(r.ts):null, c=counts[key(r)];
+    tr.innerHTML=`<td>${esc(r.subject)}</td><td class="n">${r.trial}</td><td class="n">${r.hold} <span class="hide-sm">· ${esc(r.pose)}</span> ${c>1?`<span class="chip warn">×${c}</span>`:''}</td><td class="n"><b>${fmt(r.angle,2)}°</b></td><td class="n hide-sm">${r.sd!=null?fmt(r.sd,2):''}</td><td class="hide-sm">${esc(r.source)}</td><td class="hide-sm">${esc(r.method)}</td><td class="n hide-sm">${d?d.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}</td><td></td>`;
+    const b=document.createElement('button'); b.className='btn small danger'; b.textContent='Delete'; b.onclick=()=>{ if(confirm(`Delete ${r.subject} trial ${r.trial} pose ${r.hold} (${fmt(r.angle,2)}°)?`)) store.remove('measurements',r.id); };
+    tr.lastElementChild.appendChild(b); tb.appendChild(tr); }
+  renderGuide(); }
+$('rFilter').onchange=renderRecs;
+$('rRef').onclick=()=>{ const g={}; for(const r of store.recs){ if(r.hold>3) continue; const k=key(r); (g[k]=g[k]||{r,a:[]}).a.push(r.angle); }
+  const rows=['subject,trial,hold,pose,ref_deg,notes']; Object.keys(g).sort().forEach(k=>{ const {r,a}=g[k], m=a.reduce((p,c)=>p+c,0)/a.length;
+    rows.push([r.subject,r.trial,r.hold,r.pose,m.toFixed(2),`camera goniometer n=${a.length}${a.length>1?' sd='+sd(a).toFixed(2):''}`].join(',')); });
+  if(rows.length===1){ toast('No readings to export yet.'); return; } saveFile('reference_angles.csv',rows.join('\n')+'\n'); markExported();
+  const tri={}; for(const r of store.recs){ if(r.hold>3) continue; (tri[`${r.subject}|${r.trial}`]=tri[`${r.subject}|${r.trial}`]||new Set()).add(+r.hold); }
+  const w=[]; for(const k of Object.keys(tri).sort()){ const [sj,tr]=k.split('|'), miss=[0,1,2,3].filter(h=>!tri[k].has(h));
+    if(miss.includes(0)) w.push({t:'warn',m:`${sj} trial ${tr}: no pose 0 (standing), so the analysis cannot zero this trial. Capture it if the volunteer is still here.`});
+    else if(miss.length) w.push({t:'warn',m:`${sj} trial ${tr}: missing pose ${miss.join(', ')}.`}); }
+  showMsgs('rMsgs',w.length?w:[{t:'ok',m:'Every trial has poses 0–3.'}]); };
+$('rFull').onclick=()=>{ markExported(); const cols=['subject','trial','hold','pose','angle','interior','sd','n_frames','source','method','toes','t0','t1','file','note','ts','app','wearable_deg'];
+  const rows=[cols.join(',')]; for(const r of store.recs) rows.push(cols.map(c=>{ const v=r[c]; if(v==null) return ''; const s=String(v); return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s; }).join(','));
+  saveFile('goniometer_full_log.csv',rows.join('\n')+'\n'); };
+$('rBackup').onclick=()=>{ markExported(); const stamp=new Date().toISOString().slice(0,16).replace(/[:T]/g,'-');
+  saveFile(`goniolens_backup_${stamp}.json`,JSON.stringify({app:APP_VERSION,exported:new Date().toISOString(),measurements:store.recs,checks:store.checks},null,1),'application/json'); };
+$('rRestore').onchange=async e=>{ const file=e.target.files[0]; e.target.value=''; if(!file) return;
+  try{ const data=JSON.parse(await file.text()); const sig=r=>`${r.ts}|${r.subject}|${r.trial}|${r.hold}|${r.angle}`; let n=0;
+    const have=new Set(store.recs.map(sig)); for(const r of data.measurements||[]){ if(!have.has(sig(r))){ store.recs.push({...r,id:r.id||('L'+Math.random().toString(36).slice(2))}); n++; } }
+    const haveC=new Set(store.checks.map(r=>`${r.ts}|${r.measured}`)); for(const r of data.checks||[]){ if(!haveC.has(`${r.ts}|${r.measured}`)) store.checks.push(r); }
+    lsSet('akg_recs',store.recs); lsSet('akg_checks',store.checks); store.emit(); toast(`Restored ${n} new reading(s).`); }
+  catch(err){ toast('That file is not a GonioLens backup.'); } };
+
+/* ================================================================ saving files */
+async function saveFile(name,text,type='text/csv'){
+  let dl=null; try{ if(window.claude&&window.claude.use) dl=await window.claude.use('downloads'); }catch(e){}
+  if(dl){ try{ await dl.save({filename:name,data:text}); return; }catch(e){ if(e&&e.code==='declined') return; } }
+  if(!window.claude){
+    try{ const file=new File([text],name,{type}); const touch=window.matchMedia&&window.matchMedia('(pointer: coarse)').matches;
+      if(touch&&navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+    try{ const url=URL.createObjectURL(new Blob([text],{type})); const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); toast(`Saved ${name}`); return; }catch(e){} }
+  $('rCopy').hidden=false; $('rText').value=text; showTab('records');
+  try{ await navigator.clipboard.writeText(text); toast(`Copied ${name} to the clipboard`); }catch(e){ $('rText').select(); toast(`Select all and copy into ${name}`); } }
+
+/* ================================================================ settings tab */
+function segInit(id,get,set){ const seg=$(id); const paint=()=>seg.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===get())));
+  seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ set(b.dataset.v); paint(); }); paint(); }
+segInit('toesSeg',()=>toes,v=>{ toes=v; lsSet('akg_toes',v); rerunAll(); toast(`Toes point ${v}: bending is positive`); });
+segInit('soundSeg',()=>soundOn?'on':'off',v=>{ soundOn=v==='on'; lsSet('akg_sound',soundOn); if(soundOn) beep(); });
+segInit('voiceSeg',()=>voiceOn?'on':'off',v=>{ voiceOn=v==='on'; lsSet('akg_voice',voiceOn); if(voiceOn) say('Voice guidance on.'); else try{ speechSynthesis.cancel(); }catch(e){} });
+/* ---- share: QR code of this app's address (made on the phone, works offline) */
+function drawQR(){ const url=location.href.split('#')[0].split('?')[0].replace(/index\.html$/,''), c=$('qrCanvas'), x=c.getContext('2d');
+  $('qrUrl').textContent=/^https?:/.test(url)?url:'Open the app from its https:// address to share it.';
+  x.fillStyle='#fff'; x.fillRect(0,0,c.width,c.height); if(!/^https?:/.test(url)||typeof qrcode!=='function') return;
+  const q=qrcode(0,'M'); q.addData(url); q.make(); const n=q.getModuleCount(), cell=Math.floor((c.width-16)/n), off=Math.floor((c.width-cell*n)/2);
+  x.fillStyle='#000'; for(let r=0;r<n;r++) for(let k=0;k<n;k++) if(q.isDark(r,k)) x.fillRect(off+k*cell,off+r*cell,cell,cell); }
+$('qrCopy').onclick=async()=>{ const t=$('qrUrl').textContent; try{ await navigator.clipboard.writeText(t); toast('Address copied'); }catch(e){ toast(t); } };
+drawQR();
+segInit('themeSeg',()=>theme,v=>{ theme=v; lsSet('akg_theme',v); applyTheme(); if(!$('vChart').hidden) drawChart(); });
+$('verLine').textContent=`GonioLens ${APP_VERSION} · readings saved on this device: ${lsGet('akg_recs',[]).length}`;
+
+/* ================================================================ session card */
+function zeroed(recs,trial,hold){ const z=recs.filter(r=>+r.trial===trial&&+r.hold===0).map(r=>r.angle), v=recs.filter(r=>+r.trial===trial&&+r.hold===hold).map(r=>r.angle);
+  if(!v.length) return {raw:NaN,z:NaN}; const raw=v.reduce((p,c)=>p+c,0)/v.length; const zr=z.length?z.reduce((p,c)=>p+c,0)/z.length:NaN; return {raw,z:hold===0?0:(isFinite(zr)?raw-zr:NaN)}; }
+function wearZ(recs,trial,hold){ const g=h=>recs.filter(r=>+r.trial===trial&&+r.hold===h&&r.wearable_deg!=null).map(r=>r.wearable_deg); const v=g(hold), z=g(0);
+  if(!v.length) return NaN; const m=v.reduce((p,c)=>p+c,0)/v.length; return hold===0?0:(z.length?m-z.reduce((p,c)=>p+c,0)/z.length:m); }
+function showCard(subject){ subject=String(subject||getS().subject).toUpperCase(); const recs=store.recs.filter(r=>String(r.subject).toUpperCase()===subject);
+  if(!recs.length){ toast(`No readings saved for ${subject} yet.`); return; }
+  const c=document.createElement('canvas'); c.width=1400; c.height=900; const x=c.getContext('2d'), F='-apple-system,"Segoe UI",Roboto,Inter,Arial,sans-serif';
+  const g=x.createLinearGradient(0,0,c.width,c.height); g.addColorStop(0,'#151d42'); g.addColorStop(1,'#0c1229'); x.fillStyle=g; x.fillRect(0,0,c.width,c.height);
+  x.fillStyle='#eef1ff'; x.font=`800 58px ${F}`; x.fillText('Session card',60,104); x.fillStyle='#9f86ff'; x.font=`700 28px ${F}`; x.fillText('GonioLens · reference knee angles',60,148);
+  x.textAlign='right'; x.fillStyle='#eef1ff'; x.font=`800 54px ${F}`; x.fillText(subject,c.width-60,104); x.fillStyle='#a9b1d6'; x.font=`500 24px ${F}`;
+  const last=recs.map(r=>r.ts).filter(Boolean).sort().pop(); x.fillText(last?new Date(last).toLocaleString([], {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}):'',c.width-60,146); x.textAlign='left';
+  const trials=[...new Set(recs.map(r=>+r.trial))].sort().slice(0,2); const hasW=recs.some(r=>r.wearable_deg!=null);
+  const cols=['Pose','',...trials.map(t=>`Trial ${t}`),trials.length>1?'Trial difference':''].filter((v,i)=>v!==''||i===1);
+  const X0=60, Y0=210, colX=[X0,X0+280,X0+620,X0+960]; x.font=`700 22px ${F}`; x.fillStyle='#8a93bd';
+  ['POSE','TRIAL '+(trials[0]||1),trials[1]?'TRIAL '+trials[1]:'',trials[1]?'DIFFERENCE':''].forEach((h,i)=>x.fillText(h,colX[i],Y0));
+  const names=['0 · standing','1 · leg straight','2 · knee ~90°','3 · maximum bend']; let warn=0;
+  for(let h=0;h<=3;h++){ const y=Y0+70+h*120; x.fillStyle='rgba(255,255,255,.04)'; x.fillRect(X0-20,y-48,c.width-2*X0+40,100);
+    x.fillStyle='#eef1ff'; x.font=`700 28px ${F}`; x.fillText(names[h],colX[0],y+4);
+    const vals=trials.map(t=>zeroed(recs,t,h));
+    vals.forEach((v,i)=>{ x.fillStyle=isFinite(v.raw)?'#ffc24b':'#5c6488'; x.font=`800 44px ${F}`; x.fillText(isFinite(v.raw)?(h===0?fmt(v.raw)+'°':fmt(v.z)+'°'):'missing',colX[1+i],y+8);
+      x.fillStyle='#8a93bd'; x.font=`500 20px ${F}`; x.fillText(h===0?'the zero':isFinite(v.raw)?`raw ${fmt(v.raw)}°`:'',colX[1+i],y+38);
+      if(hasW){ const w=wearZ(recs,trials[i],h); if(isFinite(w)&&h>0){ x.fillStyle='#22d3ee'; x.font=`600 20px ${F}`; x.fillText(`wearable ${fmt(w)}°`,colX[1+i]+150,y+38); } }
+      if(!isFinite(v.raw)) warn++; });
+    if(vals.length>1&&h>0&&isFinite(vals[0].z)&&isFinite(vals[1].z)){ const d=vals[1].z-vals[0].z; x.fillStyle=Math.abs(d)>5?'#ff6b7a':'#3ddc97'; x.font=`800 40px ${F}`; x.fillText((d>=0?'+':'')+fmt(d)+'°',colX[3],y+8); if(Math.abs(d)>5) warn++; } }
+  x.fillStyle=warn?'#ffc24b':'#3ddc97'; x.font=`700 26px ${F}`; x.fillText(warn?`${warn} item(s) to check: a missing pose, or trials more than 5° apart.`:'Complete: both trials have poses 0–3 and agree within 5°.',60,760);
+  x.fillStyle='#6f79a3'; x.font=`500 20px ${F}`; x.fillText('Angles relative to standing (pose 0). Reference readings for the ArthroKNEE study · not a medical assessment.',60,840);
+  const ov=document.createElement('div'); ov.className='modal'; ov.innerHTML='<div class="box"></div>'; const box=ov.firstChild; box.appendChild(c);
+  const row=document.createElement('div'); row.className='row'; const sv=document.createElement('button'); sv.className='btn primary'; sv.textContent='Save card as image'; const cl=document.createElement('button'); cl.className='btn'; cl.textContent='Close';
+  row.append(sv,cl); box.appendChild(row); document.body.appendChild(ov); cl.onclick=()=>ov.remove(); ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  sv.onclick=()=>c.toBlob(async b=>{ const name=`${subject}_session_card.png`;
+    try{ const file=new File([b],name,{type:'image/png'}); if(window.matchMedia('(pointer: coarse)').matches&&navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:name}); return; } }catch(e){ if(e&&e.name==='AbortError') return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); toast(`Saved ${name}`); },'image/png');
+  window.__card=c; return c; }
+$('lCard').onclick=()=>showCard(getS().subject);
+$('rCard').onclick=()=>showCard($('rFilter').value||getS().subject);
+
+/* ================================================================ wearable over USB (laptop Chrome / Edge only)
+   Same angle method as live_plot.py: complementary filter (alpha 0.98) on thigh tilt minus shank tilt,
+   zeroed on the first 2 s of standing; plus gyro bias removal and automatic gyro-sign detection. */
+const WCOL={}; "t_us,flex,a1x,a1y,a1z,g1x,g1y,g1z,a2x,a2y,a2z,g2x,g2y,g2z,dht_t,dht_h,bmp_t,bmp_p,btn,tk_mv,tr_mv,tk_c,tr_c".split(",").forEach((n,i)=>WCOL[n]=i);
+const WM={long:'x',fwd:'y',gyr:'z'}, WFS=50;
+const wMake=()=>({th:[null,null],bias:[0,0],biasBuf:[[],[]],gsign:[1,1],corr:[{sxy:0,n:0},{sxy:0,n:0}],prevAcc:[null,null],zero:null,zeroBuf:[],sign:1,hist:[]});
+let WE=wMake(), wPort=null, wBuf=[], wReader=null;
+function wStep(v){ for(let i=0;i<2;i++){ const n=i+1, al=v[WCOL[`a${n}${WM.long}`]], af=v[WCOL[`a${n}${WM.fwd}`]];
+    let acc=Math.atan2(af,al)*180/Math.PI; const pv=WE.prevAcc[i]; if(pv!=null){ while(acc-pv>180) acc-=360; while(acc-pv<-180) acc+=360; }
+    let gr=v[WCOL[`g${n}${WM.gyr}`]]/65.5; if(WE.zero==null) WE.biasBuf[i].push(gr); gr-=WE.bias[i];
+    if(pv!=null&&Math.abs(gr)>25){ const da=(acc-pv)*WFS; if(Math.abs(da)<400){ WE.corr[i].sxy+=Math.sign(da*gr); WE.corr[i].n++; } if(WE.corr[i].n===15&&WE.corr[i].sxy<-5){ WE.gsign[i]*=-1; WE.th[i]=acc; } }
+    WE.prevAcc[i]=acc; gr*=WE.gsign[i]; WE.th[i]=WE.th[i]==null?acc:0.98*(WE.th[i]+gr/WFS)+0.02*acc; }
+  const raw=WE.th[0]-WE.th[1];
+  if(WE.zero==null){ WE.zeroBuf.push(raw); if(WE.zeroBuf.length>=100){ const med=a=>{ const q=[...a].sort((x,y)=>x-y); return q[q.length>>1]; }; WE.zero=med(WE.zeroBuf); WE.bias=WE.biasBuf.map(med); } return null; }
+  const k=WE.sign*(raw-WE.zero); WE.hist.push(k); if(WE.hist.length>500) WE.hist.shift();
+  if(WE.hist.length>50){ let mn=Infinity,mx=-Infinity; for(const q of WE.hist){ if(q<mn) mn=q; if(q>mx) mx=q; } if(mn<-20&&Math.abs(mn)>mx){ WE.sign*=-1; WE.hist=WE.hist.map(q=>-q); return -k; } }
+  return k; }
+function wLine(line){ if(!wPort&&!window.__wearSim) return; line=line.trim(); if(!line||line[0]==='#') return; const p=line.split(','); if(p.length!==23) return; const v=p.map(Number); if(v.some(q=>!isFinite(q))) return;
+  const k=wStep(v), t=performance.now(); if(k!=null){ wBuf.push({t,k}); while(wBuf.length&&t-wBuf[0].t>1500) wBuf.shift(); } wShow(); }
+function wearNow(){ if(!wBuf.length) return null; const t=performance.now(), r=wBuf.filter(b=>t-b.t<500).map(b=>b.k); return r.length>=5?+median(r).toFixed(2):null; }
+function wShow(){ const ch=$('lWearChip'); if(WE.zero==null){ ch.textContent='calibrating: stand straight and still'; ch.className='chip warn'; $('lWearVal').textContent='--.-°'; return; }
+  ch.textContent='connected'; ch.className='chip ok'; const w=wearNow(); $('lWearVal').textContent=w==null?'--.-°':fmt(w)+'°';
+  const f=getS(), z=store.recs.filter(r=>r.subject===f.subject&&+r.trial===f.trial&&+r.hold===0).map(r=>r.angle), now=performance.now(), cam=buf.filter(b=>now-b.t<500).map(b=>b.a);
+  $('lWearDiff').textContent=(w!=null&&cam.length>=3&&z.length)?`camera − wearable: ${(median(cam)-z[0]-w>=0?'+':'')}${fmt(median(cam)-z[0]-w)}°`:(z.length?'camera − wearable: --':'capture pose 0 to compare'); }
+function renderAgree(){ if(!wPort&&!window.__wearSim) return; const f=getS(), recs=store.recs.filter(r=>r.subject===f.subject); const t=[...new Set(recs.filter(r=>r.wearable_deg!=null).map(r=>+r.trial))].pop()||f.trial;
+  const tb=$('lAgreeRows'); tb.textContent=''; const diffs=[];
+  for(let h=1;h<=3;h++){ const cz=zeroed(recs,t,h).z, wz=wearZ(recs,t,h); const tr=document.createElement('tr'); const d=cz-wz; if(isFinite(d)) diffs.push(d);
+    tr.innerHTML=`<td>${h}</td><td class="n">${isFinite(cz)?fmt(cz)+'°':'--'}</td><td class="n">${isFinite(wz)?fmt(wz)+'°':'--'}</td><td class="n">${isFinite(d)?(d>=0?'+':'')+fmt(d)+'°':'--'}</td>`; tb.appendChild(tr); }
+  $('lAgreeSum').textContent=diffs.length?`Trial ${t}: mean difference ${fmt(diffs.reduce((p,c)=>p+c,0)/diffs.length)}°, mean absolute difference ${fmt(diffs.reduce((p,c)=>p+Math.abs(c),0)/diffs.length)}° over ${diffs.length} pose(s).`:'Capture poses 0–3 to compare.'; }
+if('serial' in navigator){ $('lWear').hidden=false; }
+$('lWear').onclick=async()=>{
+  if(wPort){ const pt=wPort; wPort=null; try{ if(wReader) await wReader.cancel(); }catch(e){} try{ await pt.close(); }catch(e){} $('lWear').textContent='Connect wearable (USB)'; $('lWearChip').textContent='disconnected'; $('lWearChip').className='chip bad'; return; }
+  try{ wPort=await navigator.serial.requestPort(); await wPort.open({baudRate:460800,bufferSize:65536}); try{ await wPort.setSignals({dataTerminalReady:false,requestToSend:false}); }catch(e){}
+    WE=wMake(); wBuf=[]; $('lWearBox').hidden=false; $('lAgree').hidden=false; $('lWear').textContent='Disconnect wearable'; wShow(); renderAgree(); toast('Wearable connected. Stand straight and still for 2 s.');
+    const dec=new TextDecoder(); let tail=''; const rd=wPort.readable.getReader(); wReader=rd;
+    (async()=>{ try{ for(;;){ const {value,done}=await rd.read(); if(done) break; tail+=dec.decode(value,{stream:true}); let i; while((i=tail.indexOf('\n'))>=0){ wLine(tail.slice(0,i)); tail=tail.slice(i+1); } if(tail.length>4000) tail=''; } }
+      catch(e){ if(wPort) toast('Wearable connection lost. Check the USB cable, then tap Connect wearable again.'); } finally{ try{ rd.releaseLock(); }catch(e){} wReader=null; if(wPort){ try{ await wPort.close(); }catch(e){} wPort=null; $('lWear').textContent='Connect wearable (USB)'; $('lWearChip').textContent='disconnected'; $('lWearChip').className='chip bad'; } } })();
+  }catch(e){ wPort=null; if(e&&e.name==='NotFoundError') return; toast('Could not open the port. Close session.py, live_plot and the Serial Monitor, then try again.'); } };
+$('lWearZero').onclick=()=>{ const keep={gsign:WE.gsign,corr:WE.corr,sign:WE.sign}; WE=wMake(); Object.assign(WE,keep); wBuf=[]; toast('Re-zeroing the wearable: stand straight and still for 2 s'); wShow(); };
+
+/* ================================================================ tabs */
+function showTab(name){ document.querySelectorAll('nav.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===name)));
+  document.querySelectorAll('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==name); lsSet('akg_tab',name);
+  if(name!=='live'&&lRun) stopCam();
+  if(name==='video'&&series.length) drawChart();
+  if(name==='setup') $('verLine').textContent=`GonioLens ${APP_VERSION} · readings saved on this device: ${store.recs.length}`;
+  requestAnimationFrame(()=>stations.forEach(st=>st.img&&st.render())); window.scrollTo(0,0); }
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
+let rz=null; window.addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(()=>{ if(!$('vChart').hidden) drawChart(); stations.forEach(st=>st.img&&st.render()); if(lRun) sizeCam(); },150); });
+
+/* ================================================================ install */
+let deferred=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferred=e; $('installBtn').hidden=false; });
+$('installBtn').onclick=async()=>{ if(!deferred) return; deferred.prompt(); try{ await deferred.userChoice; }catch(e){} deferred=null; $('installBtn').hidden=true; };
+window.addEventListener('appinstalled',()=>{ $('installBtn').hidden=true; toast('GonioLens installed'); });
+
+/* ================================================================ start */
+store.on(()=>{ renderRecs(); renderChecks(); updateExpChip(); });
+$('expChip').onclick=()=>showTab('records');
+renderColorRows(); updateSwapButtons();
+const startTab=lsGet('akg_tab','live'); showTab(['live','photo','video','check','records','setup'].includes(startTab)?startTab:'live');
+renderRecs(); renderChecks(); store.init();
+window.__toast=toast; window.__akg={wLine,wearNow,showCard,say,renderAgree,wearBox(){ window.__wearSim=true; $('lWearBox').hidden=false; $('lAgree').hidden=false; },detect,geom,findHolds,cardSVG,assign,setMode,get state(){ return {mode,toes,targets3,target}; },setToes(v){ toes=v; },store,S,setHold,
+  get live(){ return {armed,lastCap,run:lRun,procCost}; }};
+})();
+if('serviceWorker' in navigator&&location.protocol!=='file:'){ window.addEventListener('load',()=>{
+  navigator.serviceWorker.register('sw.js').then(reg=>{ reg.addEventListener('updatefound',()=>{ const w=reg.installing; w&&w.addEventListener('statechange',()=>{
+    if(w.state==='activated'&&navigator.serviceWorker.controller){ if(window.__toast) window.__toast('GonioLens was updated. Close and reopen the app to use the new version.'); } }); }); }).catch(()=>{}); }); }
+</script>
+</body>
+</html>

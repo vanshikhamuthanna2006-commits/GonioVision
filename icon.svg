@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2A1B6E"/>
+      <stop offset="0.55" stop-color="#4B2BD6"/>
+      <stop offset="1" stop-color="#0FA3C4"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.62" r="0.55">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="arm" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#FFC24B"/>
+      <stop offset="1" stop-color="#FF7A3D"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#glow)"/>
+  <!-- protractor arc with ticks, centred on the lens at (256,300) -->
+  <g fill="none" stroke="#ffffff" stroke-linecap="round">
+    <path d="M118 300 A138 138 0 0 1 394 300" stroke-width="14" stroke-opacity="0.92"/>
+    <g stroke-width="8" stroke-opacity="0.75">
+      <line x1="256" y1="162" x2="256" y2="186"/>
+      <line x1="158.4" y1="202.4" x2="175.4" y2="219.4"/>
+      <line x1="353.6" y1="202.4" x2="336.6" y2="219.4"/>
+      <line x1="128.5" y1="247.2" x2="150.7" y2="256.4"/>
+      <line x1="383.5" y1="247.2" x2="361.3" y2="256.4"/>
+    </g>
+  </g>
+  <!-- two arms forming the measured angle -->
+  <g stroke="url(#arm)" stroke-width="30" stroke-linecap="round" fill="none">
+    <line x1="256" y1="300" x2="150" y2="150"/>
+    <line x1="256" y1="300" x2="392" y2="246"/>
+  </g>
+  <!-- measured-angle sweep -->
+  <path d="M207 231 A85 85 0 0 1 335 269" fill="none" stroke="#5EF2D6" stroke-width="12" stroke-linecap="round"/>
+  <!-- lens at the vertex -->
+  <circle cx="256" cy="300" r="50" fill="#0B0F24"/>
+  <circle cx="256" cy="300" r="50" fill="none" stroke="#ffffff" stroke-width="10"/>
+  <circle cx="256" cy="300" r="26" fill="#22D3EE"/>
+  <circle cx="246" cy="290" r="8" fill="#ffffff" fill-opacity="0.9"/>
+</svg>
